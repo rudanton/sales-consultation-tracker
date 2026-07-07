@@ -3,6 +3,7 @@ using System;
 using ConsultNote.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConsultNote.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707072018_AddCustomerConsultationConditionFields")]
+    partial class AddCustomerConsultationConditionFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -174,60 +177,6 @@ namespace ConsultNote.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerFile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CustomFileType")
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Memo")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StoredFileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("DisplayName");
-
-                    b.HasIndex("FileType");
-
-                    b.ToTable("CustomerFiles");
                 });
 
             modelBuilder.Entity("ConsultNote.Data.Entities.Estimate", b =>
@@ -908,17 +857,6 @@ namespace ConsultNote.Data.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerFile", b =>
-                {
-                    b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
-                        .WithMany("CustomerFiles")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("ConsultNote.Data.Entities.Estimate", b =>
                 {
                     b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
@@ -935,8 +873,6 @@ namespace ConsultNote.Data.Migrations
                     b.Navigation("Attachments");
 
                     b.Navigation("ConsultationLogs");
-
-                    b.Navigation("CustomerFiles");
 
                     b.Navigation("Estimates");
                 });

@@ -15,6 +15,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Attachment> Attachments => Set<Attachment>();
 
+    public DbSet<CustomerFile> CustomerFiles => Set<CustomerFile>();
+
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -55,6 +57,12 @@ public sealed class AppDbContext : DbContext
                 .WithOne(attachment => attachment.Customer)
                 .HasForeignKey(attachment => attachment.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity
+                .HasMany(customer => customer.CustomerFiles)
+                .WithOne(customerFile => customerFile.Customer)
+                .HasForeignKey(customerFile => customerFile.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ConsultationLog>(entity =>
@@ -78,6 +86,36 @@ public sealed class AppDbContext : DbContext
             entity.Property(attachment => attachment.StoredFileName).IsRequired();
             entity.Property(attachment => attachment.FilePath).IsRequired();
             entity.Property(attachment => attachment.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<CustomerFile>(entity =>
+        {
+            entity.Property(customerFile => customerFile.OriginalFileName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(customerFile => customerFile.StoredFileName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(customerFile => customerFile.DisplayName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(customerFile => customerFile.FilePath)
+                .IsRequired();
+
+            entity.Property(customerFile => customerFile.FileType)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(customerFile => customerFile.CustomFileType)
+                .HasMaxLength(80);
+
+            entity.Property(customerFile => customerFile.CreatedAt).IsRequired();
+
+            entity.HasIndex(customerFile => customerFile.DisplayName);
+            entity.HasIndex(customerFile => customerFile.FileType);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

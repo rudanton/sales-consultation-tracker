@@ -18,6 +18,11 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _selectedVehicleBrand;
     private string? _selectedVehicleName;
     private string? _selectedFuelType;
+    private string? _customerNameInput;
+    private string? _customerPhoneInput;
+    private string? _customerVehicleNameInput;
+    private string? _customerMemoInput;
+    private CustomerStatusOption? _selectedCustomerStatus;
 
     public MainWindowViewModel()
     {
@@ -28,14 +33,21 @@ public sealed class MainWindowViewModel : ObservableObject
         SortDirections.Add("오름");
         SortDirections.Add("내림");
 
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.Consulting, "상담중"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.NoAnswer, "부재"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.Screening, "심사"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.ContractCompleted, "계약완료"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.Delivered, "인도완료"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.LongNoAnswer, "장기부재"));
+        CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.Discarded, "폐기"));
+
         SelectedSortOption = SortOptions[0];
         SelectedSortDirection = SortDirections[1];
 
-        AddCustomerCommand = new RelayCommand(AddCustomer);
+        SaveCustomerCommand = new RelayCommand(SaveSelectedCustomer);
 
-        EnsureSampleCustomers();
         LoadVehicleOptions();
-        LoadCustomers();
+        ReloadCustomers();
 
         SearchText = string.Empty;
     }
@@ -52,7 +64,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ObservableCollection<string> FuelTypes { get; } = [];
 
-    public ICommand AddCustomerCommand { get; }
+    public ObservableCollection<string> CustomerVehicleNames { get; } = [];
+
+    public ObservableCollection<CustomerStatusOption> CustomerStatusOptions { get; } = [];
+
+    public ICommand SaveCustomerCommand { get; }
 
     public string? SearchText
     {
@@ -98,6 +114,7 @@ public sealed class MainWindowViewModel : ObservableObject
             if (SetProperty(ref _selectedCustomer, value))
             {
                 SelectedFile = value?.Files.FirstOrDefault();
+                LoadCustomerEditor(value);
                 OnPropertyChanged(nameof(SearchSummary));
             }
         }
@@ -139,6 +156,36 @@ public sealed class MainWindowViewModel : ObservableObject
         set => SetProperty(ref _selectedFuelType, value);
     }
 
+    public string? CustomerNameInput
+    {
+        get => _customerNameInput;
+        set => SetProperty(ref _customerNameInput, value);
+    }
+
+    public string? CustomerPhoneInput
+    {
+        get => _customerPhoneInput;
+        set => SetProperty(ref _customerPhoneInput, value);
+    }
+
+    public string? CustomerVehicleNameInput
+    {
+        get => _customerVehicleNameInput;
+        set => SetProperty(ref _customerVehicleNameInput, value);
+    }
+
+    public CustomerStatusOption? SelectedCustomerStatus
+    {
+        get => _selectedCustomerStatus;
+        set => SetProperty(ref _selectedCustomerStatus, value);
+    }
+
+    public string? CustomerMemoInput
+    {
+        get => _customerMemoInput;
+        set => SetProperty(ref _customerMemoInput, value);
+    }
+
     public string SearchSummary
     {
         get
@@ -149,34 +196,37 @@ public sealed class MainWindowViewModel : ObservableObject
 
             return string.IsNullOrWhiteSpace(SearchText)
                 ? $"{totalText} · 검색어를 입력하면 즉시 좁혀집니다"
-                : $"{totalText} · 이름/전화/차량/상담/견적에서 검색";
+                : $"{totalText} · 이름/전화/차량/상담/고객 파일에서 검색";
         }
     }
 
-    private void LoadCustomers()
+    public void ReloadCustomers(int? selectedCustomerId = null)
     {
+        selectedCustomerId ??= SelectedCustomer?.Id;
+
         using var dbContext = new AppDbContext();
 
         var customers = dbContext.Customers
             .Include(customer => customer.ConsultationLogs)
             .Include(customer => customer.Estimates)
             .Include(customer => customer.Attachments)
+            .Include(customer => customer.CustomerFiles)
             .AsNoTracking()
             .ToList();
 
         _allCustomers.Clear();
         _allCustomers.AddRange(customers.Select(ToViewModel));
-        RefreshCustomers();
+        RefreshCustomers(selectedCustomerId);
     }
 
-    private void RefreshCustomers()
+    private void RefreshCustomers(int? preferredSelectedCustomerId = null)
     {
         if (SelectedSortOption is null || SelectedSortDirection is null)
         {
             return;
         }
 
-        var selectedId = SelectedCustomer?.Id;
+        var selectedId = preferredSelectedCustomerId ?? SelectedCustomer?.Id;
         var query = _allCustomers.Where(MatchesSearch);
 
         query = SelectedSortOption switch
@@ -202,6 +252,17 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(SearchSummary));
     }
 
+    private void LoadCustomerEditor(CustomerItemViewModel? customer)
+    {
+        CustomerNameInput = customer?.Name == "-" ? string.Empty : customer?.Name;
+        CustomerPhoneInput = customer?.PhoneNumber == "-" ? string.Empty : customer?.PhoneNumber;
+        CustomerVehicleNameInput = customer?.VehicleName == "-" ? string.Empty : customer?.VehicleName;
+        CustomerMemoInput = customer?.MemoPreview == "-" ? string.Empty : customer?.MemoPreview;
+        SelectedCustomerStatus = customer is null
+            ? CustomerStatusOptions.FirstOrDefault()
+            : CustomerStatusOptions.FirstOrDefault(option => option.Status == customer.Status);
+    }
+
     private bool MatchesSearch(CustomerItemViewModel customer)
     {
         var keyword = SearchText?.Trim();
@@ -214,39 +275,110 @@ public sealed class MainWindowViewModel : ObservableObject
             || Contains(customer.PhoneNumber, keyword)
             || Contains(customer.VehicleName, keyword)
             || Contains(customer.MemoPreview, keyword)
-            || Contains(customer.CompanyDbReference, keyword)
             || customer.ConsultationLogs.Any(log => Contains(log.Content, keyword))
             || customer.Files.Any(file => Contains(file.FileName, keyword) || Contains(file.Summary, keyword));
     }
 
-    private void AddCustomer()
+    public int AddCustomer(string name, string? phoneNumber, string? vehicleName)
     {
+        var normalizedName = TrimToNull(name);
+        if (normalizedName is null)
+        {
+            return 0;
+        }
+
         var now = DateTime.Now;
         using var dbContext = new AppDbContext();
-        var nextNumber = dbContext.Customers.Count() + 1;
 
         var customer = new Customer
         {
-            Name = $"신규 고객 {nextNumber}",
-            PhoneNumber = "010-",
-            VehicleName = SelectedVehicleName,
-            CompanyDbReference = string.Empty,
-            Memo = "새 고객 메모를 입력하세요.",
+            Name = normalizedName,
+            PhoneNumber = TrimToNull(phoneNumber),
+            VehicleName = TrimToNull(vehicleName),
             Status = CustomerStatus.Consulting,
             StatusChangedAt = now,
             CreatedAt = now,
             UpdatedAt = now,
         };
 
+        EnsureVehicleNameExists(dbContext, customer.VehicleName, now);
         dbContext.Customers.Add(customer);
         dbContext.SaveChanges();
 
-        LoadCustomers();
+        LoadVehicleOptions();
+        ReloadCustomers(customer.Id);
         SelectedCustomer = Customers.FirstOrDefault(item => item.Id == customer.Id) ?? Customers.FirstOrDefault();
+        return customer.Id;
     }
 
-    private void LoadVehicleOptions()
+    private void SaveSelectedCustomer()
     {
+        if (SelectedCustomer is null)
+        {
+            return;
+        }
+
+        var now = DateTime.Now;
+        using var dbContext = new AppDbContext();
+        var customer = dbContext.Customers.FirstOrDefault(item => item.Id == SelectedCustomer.Id);
+        if (customer is null)
+        {
+            return;
+        }
+
+        var nextStatus = SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
+        var statusChanged = customer.Status != nextStatus;
+
+        customer.Name = TrimToNull(CustomerNameInput);
+        customer.PhoneNumber = TrimToNull(CustomerPhoneInput);
+        customer.VehicleName = TrimToNull(CustomerVehicleNameInput);
+        customer.Memo = TrimToNull(CustomerMemoInput);
+        customer.Status = nextStatus;
+        customer.UpdatedAt = now;
+
+        if (statusChanged)
+        {
+            customer.StatusChangedAt = now;
+            customer.LastContactAttemptAt = now;
+        }
+
+        EnsureVehicleNameExists(dbContext, customer.VehicleName, now);
+        dbContext.SaveChanges();
+        LoadVehicleOptions();
+        ReloadCustomers(customer.Id);
+    }
+
+    private static void EnsureVehicleNameExists(AppDbContext dbContext, string? vehicleName, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(vehicleName))
+        {
+            return;
+        }
+
+        var normalizedName = vehicleName.Trim();
+        var exists = dbContext.Vehicles.Any(vehicle => vehicle.Name == normalizedName);
+        if (exists)
+        {
+            return;
+        }
+
+        dbContext.Vehicles.Add(new Vehicle
+        {
+            Brand = "직접입력",
+            Name = normalizedName,
+            Memo = "고객 관심 차량에서 추가",
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+        });
+    }
+
+    public void LoadVehicleOptions()
+    {
+        var previousBrand = SelectedVehicleBrand;
+        var previousName = SelectedVehicleName;
+        var previousFuelType = SelectedFuelType;
+
         using var dbContext = new AppDbContext();
 
         _vehicleOptions.Clear();
@@ -264,11 +396,21 @@ public sealed class MainWindowViewModel : ObservableObject
             VehicleBrands.Add(brand);
         }
 
-        SelectedVehicleBrand = VehicleBrands.Contains("기아") ? "기아" : VehicleBrands.FirstOrDefault();
-        SelectedVehicleName = VehicleNames.Contains("K5") ? "K5" : VehicleNames.FirstOrDefault();
+        CustomerVehicleNames.Clear();
+        foreach (var name in _vehicleOptions.Select(vehicle => vehicle.Name).Distinct().OrderBy(name => name))
+        {
+            CustomerVehicleNames.Add(name);
+        }
+
+        SelectedVehicleBrand = previousBrand is not null && VehicleBrands.Contains(previousBrand)
+            ? previousBrand
+            : VehicleBrands.Contains("기아") ? "기아" : VehicleBrands.FirstOrDefault();
+
+        RefreshVehicleNames(previousName);
+        RefreshFuelTypes(previousFuelType);
     }
 
-    private void RefreshVehicleNames()
+    private void RefreshVehicleNames(string? preferredVehicleName = null)
     {
         VehicleNames.Clear();
 
@@ -281,12 +423,18 @@ public sealed class MainWindowViewModel : ObservableObject
             VehicleNames.Add(name);
         }
 
-        SelectedVehicleName = SelectedVehicleName is not null && VehicleNames.Contains(SelectedVehicleName)
-            ? SelectedVehicleName
-            : VehicleNames.FirstOrDefault();
+        var nextVehicleName = preferredVehicleName is not null && VehicleNames.Contains(preferredVehicleName)
+            ? preferredVehicleName
+            : SelectedVehicleName is not null && VehicleNames.Contains(SelectedVehicleName)
+                ? SelectedVehicleName
+                : SelectedVehicleBrand == "기아" && VehicleNames.Contains("K5")
+                    ? "K5"
+                    : VehicleNames.FirstOrDefault();
+
+        SelectedVehicleName = nextVehicleName;
     }
 
-    private void RefreshFuelTypes()
+    private void RefreshFuelTypes(string? preferredFuelType = null)
     {
         FuelTypes.Clear();
 
@@ -301,9 +449,11 @@ public sealed class MainWindowViewModel : ObservableObject
             FuelTypes.Add(fuelType);
         }
 
-        SelectedFuelType = SelectedFuelType is not null && FuelTypes.Contains(SelectedFuelType)
-            ? SelectedFuelType
-            : FuelTypes.FirstOrDefault();
+        SelectedFuelType = preferredFuelType is not null && FuelTypes.Contains(preferredFuelType)
+            ? preferredFuelType
+            : SelectedFuelType is not null && FuelTypes.Contains(SelectedFuelType)
+                ? SelectedFuelType
+                : FuelTypes.FirstOrDefault();
     }
 
     private static CustomerItemViewModel ToViewModel(Customer customer)
@@ -318,10 +468,10 @@ public sealed class MainWindowViewModel : ObservableObject
             Name = EmptyToDash(customer.Name),
             PhoneNumber = EmptyToDash(customer.PhoneNumber),
             VehicleName = vehicleName,
+            Status = customer.Status,
             StatusText = FormatStatus(customer.Status, customer.StatusChangedAt, customer.LastContactAttemptAt),
             RecentText = FormatRecent(customer.LastConsultedAt ?? latestLog?.CreatedAt),
             MemoPreview = EmptyToDash(customer.Memo),
-            CompanyDbReference = EmptyToDash(customer.CompanyDbReference),
             ConditionSummary = vehicleName,
             SimilarEstimateSummary = latestEstimate is null
                 ? "참고 견적 없음"
@@ -340,100 +490,23 @@ public sealed class MainWindowViewModel : ObservableObject
             });
         }
 
-        foreach (var estimate in customer.Estimates.OrderByDescending(estimate => estimate.CreatedAt))
+        foreach (var customerFile in customer.CustomerFiles.OrderByDescending(file => file.CreatedAt))
         {
             viewModel.Files.Add(new FileItemViewModel
             {
-                FileName = estimate.OriginalFileName,
-                Summary = $"{EmptyToDash(estimate.VehicleName)} · {FormatMonthlyFee(estimate.MonthlyFee)}",
-                PreviewTitle = estimate.OriginalFileName,
-                PreviewMeta = $"{EmptyToDash(estimate.VehicleName)} · {FormatMonthlyFee(estimate.MonthlyFee)} · {EmptyToDash(estimate.Status)}",
-                PreviewLabel = "견적 이미지",
-            });
-        }
-
-        foreach (var attachment in customer.Attachments.OrderByDescending(attachment => attachment.CreatedAt))
-        {
-            viewModel.Files.Add(new FileItemViewModel
-            {
-                FileName = attachment.OriginalFileName,
-                Summary = EmptyToDash(attachment.FileType),
-                PreviewTitle = attachment.OriginalFileName,
-                PreviewMeta = $"{EmptyToDash(attachment.FileType)} · {attachment.CreatedAt:yyyy-MM-dd}",
-                PreviewLabel = "첨부파일",
+                Id = customerFile.Id,
+                FileName = customerFile.DisplayName,
+                FilePath = customerFile.FilePath,
+                FileType = GetDisplayFileType(customerFile),
+                Summary = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
+                PreviewTitle = customerFile.DisplayName,
+                PreviewMeta = $"{GetDisplayFileType(customerFile)} · {customerFile.OriginalFileName} · {customerFile.CreatedAt:yyyy-MM-dd}",
+                PreviewLabel = customerFile.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(customerFile),
+                CreatedAt = customerFile.CreatedAt,
             });
         }
 
         return viewModel;
-    }
-
-    private static void EnsureSampleCustomers()
-    {
-        using var dbContext = new AppDbContext();
-        if (dbContext.Customers.Any())
-        {
-            return;
-        }
-
-        var today = DateTime.Today.AddHours(10).AddMinutes(30);
-        var yesterday = today.AddDays(-1).AddHours(3).AddMinutes(50);
-        var twoDaysAgo = today.AddDays(-2).AddHours(6).AddMinutes(40);
-
-        var kim = new Customer
-        {
-            Name = "김민수",
-            PhoneNumber = "010-1234-5678",
-            VehicleName = "K5 하이브리드",
-            CompanyDbReference = "회사 DB #A-1042",
-            Memo = "월 50만원 이하 희망, 배우자와 상의 예정",
-            Status = CustomerStatus.Consulting,
-            StatusChangedAt = today.AddDays(-1),
-            LastContactAttemptAt = today,
-            LastConsultedAt = today,
-            CreatedAt = today.AddDays(-2),
-            UpdatedAt = today,
-        };
-        kim.ConsultationLogs.Add(new ConsultationLog { Content = "K5 문의. 월 50만원 이하 희망. 배우자와 상의 후 재연락 예정.", CreatedAt = today, UpdatedAt = today });
-        kim.ConsultationLogs.Add(new ConsultationLog { Content = "초기비용 낮은 조건 선호. 박지훈 고객의 K5 견적 조건 참고 가능.", CreatedAt = yesterday, UpdatedAt = yesterday });
-        kim.Estimates.Add(new Estimate { OriginalFileName = "estimate_20260707_k5.png", StoredFileName = "estimate_20260707_k5.png", FilePath = "storage/customers/1/estimates/estimate_20260707_k5.png", VehicleName = "K5 하이브리드", MonthlyFee = 498000, Status = "안내완료", CreatedAt = today });
-        kim.Attachments.Add(new Attachment { OriginalFileName = "license_kim.jpg", StoredFileName = "license_kim.jpg", FilePath = "storage/customers/1/attachments/license_kim.jpg", FileType = "면허증", CreatedAt = today.AddHours(-1) });
-
-        var park = new Customer
-        {
-            Name = "박지훈",
-            PhoneNumber = "010-7788-9012",
-            VehicleName = "K5 / 쏘나타 비교",
-            CompanyDbReference = "회사 DB #B-2210",
-            Memo = "초기비용 낮은 조건 선호",
-            Status = CustomerStatus.NoAnswer,
-            StatusChangedAt = today.AddDays(-3),
-            LastContactAttemptAt = today.AddDays(-3),
-            LastConsultedAt = yesterday,
-            CreatedAt = today.AddDays(-5),
-            UpdatedAt = yesterday,
-        };
-        park.ConsultationLogs.Add(new ConsultationLog { Content = "부재. K5와 쏘나타 중 초기비용 낮은 조건으로 재안내 예정.", CreatedAt = yesterday, UpdatedAt = yesterday });
-        park.Estimates.Add(new Estimate { OriginalFileName = "estimate_20260704_k5_lowdown.jpg", StoredFileName = "estimate_20260704_k5_lowdown.jpg", FilePath = "storage/customers/2/estimates/estimate_20260704_k5_lowdown.jpg", VehicleName = "K5", MonthlyFee = 512000, Status = "초안", CreatedAt = twoDaysAgo });
-
-        var lee = new Customer
-        {
-            Name = "이서연",
-            PhoneNumber = "010-4567-2200",
-            VehicleName = "아반떼 / K5 문의",
-            CompanyDbReference = "회사 DB #C-0188",
-            Memo = "사업자등록증 확인 필요",
-            Status = CustomerStatus.Screening,
-            StatusChangedAt = twoDaysAgo,
-            LastContactAttemptAt = twoDaysAgo,
-            LastConsultedAt = twoDaysAgo,
-            CreatedAt = today.AddDays(-4),
-            UpdatedAt = twoDaysAgo,
-        };
-        lee.ConsultationLogs.Add(new ConsultationLog { Content = "사업자등록증 확인 후 심사 진행. 아반떼와 K5 조건 비교.", CreatedAt = twoDaysAgo, UpdatedAt = twoDaysAgo });
-        lee.Attachments.Add(new Attachment { OriginalFileName = "business_registration.pdf", StoredFileName = "business_registration.pdf", FilePath = "storage/customers/3/attachments/business_registration.pdf", FileType = "사업자등록증", CreatedAt = twoDaysAgo });
-
-        dbContext.Customers.AddRange(kim, park, lee);
-        dbContext.SaveChanges();
     }
 
     private static string FormatStatus(CustomerStatus status, DateTime? statusChangedAt, DateTime? lastContactAttemptAt)
@@ -510,9 +583,22 @@ public sealed class MainWindowViewModel : ObservableObject
         return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 
+    private static string GetDisplayFileType(CustomerFile customerFile)
+    {
+        return customerFile.FileType == "기타" && !string.IsNullOrWhiteSpace(customerFile.CustomFileType)
+            ? customerFile.CustomFileType
+            : customerFile.FileType;
+    }
+
     private static bool Contains(string? source, string keyword)
     {
         return source?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     private static IEnumerable<string> SplitFuelTypes(string? fuelTypes)
@@ -525,4 +611,12 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     private sealed record VehicleOption(string Brand, string Name, string? FuelTypes);
+
+    public sealed record CustomerStatusOption(CustomerStatus Status, string DisplayName)
+    {
+        public override string ToString()
+        {
+            return DisplayName;
+        }
+    }
 }
