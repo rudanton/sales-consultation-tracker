@@ -18,32 +18,32 @@
 
 - [x] WPF 프로젝트 생성
 - [x] 솔루션 구조 정리
-- [ ] 기본 폴더 구조 생성
-  - [ ] `src/`
-  - [ ] `docs/`
-  - [ ] `storage/`
-  - [ ] `backup/`
-  - [ ] `logs/`
-- [ ] SQLite 패키지 추가
-- [ ] Entity Framework Core 패키지 추가
-- [ ] 애플리케이션 실행 시 기본 폴더 자동 생성
-- [ ] 애플리케이션 실행 시 DB 파일 자동 생성
+- [x] 기본 폴더 구조 생성
+  - [x] `src/`
+  - [x] `docs/`
+  - [x] `storage/`
+  - [x] `backup/`
+  - [x] `logs/`
+- [x] SQLite 패키지 추가
+- [x] Entity Framework Core 패키지 추가
+- [x] 앱 실행 시 로컬 데이터 폴더 존재 확인 및 없으면 생성
+- [x] 앱 실행 시 SQLite DB 존재 확인 및 없으면 생성
 - [ ] self-contained publish 가능 여부 확인
 
 ---
 
 ## P1.2 Data Model
 
-- [ ] `Customer` Entity 생성
-- [ ] `ConsultationLog` Entity 생성
-- [ ] `Estimate` Entity 생성
-- [ ] `Attachment` Entity 생성
-- [ ] `AppDbContext` 생성
-- [ ] Customer 1:N ConsultationLog 관계 설정
-- [ ] Customer 1:N Estimate 관계 설정
-- [ ] Customer 1:N Attachment 관계 설정
-- [ ] 초기 마이그레이션 생성
-- [ ] DB 생성 테스트
+- [x] `Customer` Entity 생성
+- [x] `ConsultationLog` Entity 생성
+- [x] `Estimate` Entity 생성
+- [x] `Attachment` Entity 생성
+- [x] `AppDbContext` 생성
+- [x] Customer 1:N ConsultationLog 관계 설정
+- [x] Customer 1:N Estimate 관계 설정
+- [x] Customer 1:N Attachment 관계 설정
+- [x] 초기 마이그레이션 생성
+- [x] DB 생성 테스트
 
 ---
 
