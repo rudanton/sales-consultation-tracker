@@ -1,4 +1,5 @@
 using ConsultNote.Infrastructure;
+using System.IO;
 using System.Windows;
 
 namespace ConsultNote;
@@ -15,6 +16,8 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            TryWriteStartupErrorLog(ex);
+
             MessageBox.Show(
                 $"앱 초기화 중 오류가 발생했습니다.\n\n{ex.Message}",
                 "Consult Note",
@@ -28,5 +31,19 @@ public partial class App : Application
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;
         mainWindow.Show();
+    }
+
+    private static void TryWriteStartupErrorLog(Exception exception)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.LogsDirectory);
+            var logPath = Path.Combine(AppPaths.LogsDirectory, "startup-error.txt");
+            File.WriteAllText(logPath, exception.ToString());
+        }
+        catch
+        {
+            // The message box below is still the primary user-facing error path.
+        }
     }
 }

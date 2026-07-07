@@ -70,33 +70,40 @@ public partial class VehicleManagementDialog : Window
             return;
         }
 
-        var now = DateTime.Now;
-        using var dbContext = new AppDbContext();
-        Vehicle vehicle;
-
-        if (_isNewVehicle || _selectedVehicle is null)
+        try
         {
-            vehicle = new Vehicle
+            var now = DateTime.Now;
+            using var dbContext = new AppDbContext();
+            Vehicle vehicle;
+
+            if (_isNewVehicle || _selectedVehicle is null)
             {
-                CreatedAt = now,
-                IsActive = true,
-            };
-            dbContext.Vehicles.Add(vehicle);
+                vehicle = new Vehicle
+                {
+                    CreatedAt = now,
+                    IsActive = true,
+                };
+                dbContext.Vehicles.Add(vehicle);
+            }
+            else
+            {
+                vehicle = dbContext.Vehicles.First(item => item.Id == _selectedVehicle.Id);
+            }
+
+            vehicle.Brand = TrimToNull(BrandTextBox.Text);
+            vehicle.Name = name;
+            vehicle.FuelTypes = TrimToNull(FuelTypesTextBox.Text);
+            vehicle.Memo = TrimToNull(MemoTextBox.Text);
+            vehicle.UpdatedAt = now;
+
+            dbContext.SaveChanges();
+            _isNewVehicle = false;
+            LoadVehicles(vehicle.Id);
         }
-        else
+        catch (Exception ex)
         {
-            vehicle = dbContext.Vehicles.First(item => item.Id == _selectedVehicle.Id);
+            ShowDatabaseSaveError(ex);
         }
-
-        vehicle.Brand = TrimToNull(BrandTextBox.Text);
-        vehicle.Name = name;
-        vehicle.FuelTypes = TrimToNull(FuelTypesTextBox.Text);
-        vehicle.Memo = TrimToNull(MemoTextBox.Text);
-        vehicle.UpdatedAt = now;
-
-        dbContext.SaveChanges();
-        _isNewVehicle = false;
-        LoadVehicles(vehicle.Id);
     }
 
     private void ToggleActiveButton_Click(object sender, RoutedEventArgs e)
@@ -106,17 +113,24 @@ public partial class VehicleManagementDialog : Window
             return;
         }
 
-        using var dbContext = new AppDbContext();
-        var vehicle = dbContext.Vehicles.FirstOrDefault(item => item.Id == _selectedVehicle.Id);
-        if (vehicle is null)
+        try
         {
-            return;
-        }
+            using var dbContext = new AppDbContext();
+            var vehicle = dbContext.Vehicles.FirstOrDefault(item => item.Id == _selectedVehicle.Id);
+            if (vehicle is null)
+            {
+                return;
+            }
 
-        vehicle.IsActive = !vehicle.IsActive;
-        vehicle.UpdatedAt = DateTime.Now;
-        dbContext.SaveChanges();
-        LoadVehicles(vehicle.Id);
+            vehicle.IsActive = !vehicle.IsActive;
+            vehicle.UpdatedAt = DateTime.Now;
+            dbContext.SaveChanges();
+            LoadVehicles(vehicle.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
     }
 
     private void LoadEditor(VehicleListItem? vehicle)
@@ -133,6 +147,15 @@ public partial class VehicleManagementDialog : Window
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static void ShowDatabaseSaveError(Exception exception)
+    {
+        MessageBox.Show(
+            $"저장 중 오류가 발생했습니다.\n\n{exception.Message}",
+            "Consult Note",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
     }
 
     public sealed class VehicleListItem : INotifyPropertyChanged

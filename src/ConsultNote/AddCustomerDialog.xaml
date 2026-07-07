@@ -65,7 +65,8 @@
                 <TextBlock Text="연락처" Style="{StaticResource MutedText}" />
                 <TextBox x:Name="CustomerPhoneTextBox"
                          Padding="8,5"
-                         Margin="0,5,0,10" />
+                         Margin="0,5,0,10"
+                         LostFocus="CustomerPhoneTextBox_LostFocus" />
 
                 <TextBlock Text="관심 차량" Style="{StaticResource MutedText}" />
                 <ComboBox x:Name="CustomerVehicleComboBox"

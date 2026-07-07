@@ -46,6 +46,12 @@ public sealed class Customer
 
     public string? SpecialNote { get; set; }
 
+    public bool IsContractHolderSameAsCustomer { get; set; }
+
+    public string? ContractHolderName { get; set; }
+
+    public string? ContractHolderPhoneNumber { get; set; }
+
     public CustomerStatus Status { get; set; } = CustomerStatus.Consulting;
 
     public DateTime? StatusChangedAt { get; set; }

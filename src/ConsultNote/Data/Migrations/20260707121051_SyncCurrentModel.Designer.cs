@@ -3,6 +3,7 @@ using System;
 using ConsultNote.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConsultNote.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707121051_SyncCurrentModel")]
+    partial class SyncCurrentModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
@@ -92,12 +95,6 @@ namespace ConsultNote.Data.Migrations
                     b.Property<string>("CompanyDbReference")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ContractHolderName")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContractHolderPhoneNumber")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ContractPeriod")
                         .HasColumnType("TEXT");
 
@@ -136,9 +133,6 @@ namespace ConsultNote.Data.Migrations
 
                     b.Property<string>("InsuranceAge")
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsContractHolderSameAsCustomer")
-                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("LastConsultedAt")
                         .HasColumnType("TEXT");

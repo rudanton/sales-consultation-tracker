@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using ConsultNote.Infrastructure;
 
 namespace ConsultNote;
 
@@ -29,6 +30,11 @@ public partial class AddCustomerDialog : Window
         }
 
         DialogResult = true;
+    }
+
+    private void CustomerPhoneTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        CustomerPhoneTextBox.Text = PhoneNumberFormatter.Format(CustomerPhoneTextBox.Text);
     }
 
     private static string? TrimToNull(string? value)

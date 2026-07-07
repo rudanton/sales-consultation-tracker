@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using ConsultNote.Data;
 using ConsultNote.Data.Entities;
+using ConsultNote.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace ConsultNote.ViewModels;
@@ -255,8 +257,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void LoadCustomerEditor(CustomerItemViewModel? customer)
     {
         CustomerNameInput = customer?.Name == "-" ? string.Empty : customer?.Name;
-        CustomerPhoneInput = customer?.PhoneNumber == "-" ? string.Empty : customer?.PhoneNumber;
-        CustomerVehicleNameInput = customer?.VehicleName == "-" ? string.Empty : customer?.VehicleName;
+        CustomerPhoneInput = customer?.PhoneNumber == "-" ? string.Empty : PhoneNumberFormatter.Format(customer?.PhoneNumber);
         CustomerMemoInput = customer?.MemoPreview == "-" ? string.Empty : customer?.MemoPreview;
         SelectedCustomerStatus = customer is null
             ? CustomerStatusOptions.FirstOrDefault()
@@ -271,12 +272,24 @@ public sealed class MainWindowViewModel : ObservableObject
             return true;
         }
 
+        var keywords = keyword.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return keywords.All(item => MatchesSearchKeyword(customer, item));
+    }
+
+    private static bool MatchesSearchKeyword(CustomerItemViewModel customer, string keyword)
+    {
         return Contains(customer.Name, keyword)
-            || Contains(customer.PhoneNumber, keyword)
+            || PhoneNumberFormatter.Contains(customer.PhoneNumber, keyword)
             || Contains(customer.VehicleName, keyword)
             || Contains(customer.MemoPreview, keyword)
+            || Contains(customer.ConditionSummary, keyword)
+            || Contains(customer.SimilarEstimateSummary, keyword)
             || customer.ConsultationLogs.Any(log => Contains(log.Content, keyword))
-            || customer.Files.Any(file => Contains(file.FileName, keyword) || Contains(file.Summary, keyword));
+            || customer.Files.Any(file =>
+                Contains(file.FileName, keyword)
+                || Contains(file.FileType, keyword)
+                || Contains(file.Summary, keyword)
+                || Contains(file.PreviewMeta, keyword));
     }
 
     public int AddCustomer(string name, string? phoneNumber, string? vehicleName)
@@ -284,31 +297,40 @@ public sealed class MainWindowViewModel : ObservableObject
         var normalizedName = TrimToNull(name);
         if (normalizedName is null)
         {
+            ShowInfo("고객 이름을 입력해주세요.");
             return 0;
         }
 
         var now = DateTime.Now;
-        using var dbContext = new AppDbContext();
-
-        var customer = new Customer
+        try
         {
-            Name = normalizedName,
-            PhoneNumber = TrimToNull(phoneNumber),
-            VehicleName = TrimToNull(vehicleName),
-            Status = CustomerStatus.Consulting,
-            StatusChangedAt = now,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+            using var dbContext = new AppDbContext();
 
-        EnsureVehicleNameExists(dbContext, customer.VehicleName, now);
-        dbContext.Customers.Add(customer);
-        dbContext.SaveChanges();
+            var customer = new Customer
+            {
+                Name = normalizedName,
+                PhoneNumber = PhoneNumberFormatter.Normalize(phoneNumber),
+                VehicleName = TrimToNull(vehicleName),
+                Status = CustomerStatus.Consulting,
+                StatusChangedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
 
-        LoadVehicleOptions();
-        ReloadCustomers(customer.Id);
-        SelectedCustomer = Customers.FirstOrDefault(item => item.Id == customer.Id) ?? Customers.FirstOrDefault();
-        return customer.Id;
+            EnsureVehicleNameExists(dbContext, customer.VehicleName, now);
+            dbContext.Customers.Add(customer);
+            dbContext.SaveChanges();
+
+            LoadVehicleOptions();
+            ReloadCustomers(customer.Id);
+            SelectedCustomer = Customers.FirstOrDefault(item => item.Id == customer.Id) ?? Customers.FirstOrDefault();
+            return customer.Id;
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+            return 0;
+        }
     }
 
     private void SaveSelectedCustomer()
@@ -326,26 +348,27 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var nextStatus = SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
-        var statusChanged = customer.Status != nextStatus;
-
-        customer.Name = TrimToNull(CustomerNameInput);
-        customer.PhoneNumber = TrimToNull(CustomerPhoneInput);
-        customer.VehicleName = TrimToNull(CustomerVehicleNameInput);
-        customer.Memo = TrimToNull(CustomerMemoInput);
-        customer.Status = nextStatus;
-        customer.UpdatedAt = now;
-
-        if (statusChanged)
+        var normalizedName = TrimToNull(CustomerNameInput);
+        if (normalizedName is null)
         {
-            customer.StatusChangedAt = now;
-            customer.LastContactAttemptAt = now;
+            ShowInfo("고객 이름을 입력해주세요.");
+            return;
         }
 
-        EnsureVehicleNameExists(dbContext, customer.VehicleName, now);
-        dbContext.SaveChanges();
-        LoadVehicleOptions();
-        ReloadCustomers(customer.Id);
+        customer.Name = normalizedName;
+        customer.PhoneNumber = PhoneNumberFormatter.Normalize(CustomerPhoneInput);
+        customer.Memo = TrimToNull(CustomerMemoInput);
+        customer.UpdatedAt = now;
+
+        try
+        {
+            dbContext.SaveChanges();
+            ReloadCustomers(customer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
     }
 
     private static void EnsureVehicleNameExists(AppDbContext dbContext, string? vehicleName, DateTime now)
@@ -466,7 +489,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             Id = customer.Id,
             Name = EmptyToDash(customer.Name),
-            PhoneNumber = EmptyToDash(customer.PhoneNumber),
+            PhoneNumber = EmptyToDash(PhoneNumberFormatter.Format(customer.PhoneNumber)),
             VehicleName = vehicleName,
             Status = customer.Status,
             StatusText = FormatStatus(customer.Status, customer.StatusChangedAt, customer.LastContactAttemptAt),
@@ -599,6 +622,20 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static void ShowInfo(string message)
+    {
+        MessageBox.Show(message, "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private static void ShowDatabaseSaveError(Exception exception)
+    {
+        MessageBox.Show(
+            $"저장 중 오류가 발생했습니다.\n\n{exception.Message}",
+            "Consult Note",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
     }
 
     private static IEnumerable<string> SplitFuelTypes(string? fuelTypes)

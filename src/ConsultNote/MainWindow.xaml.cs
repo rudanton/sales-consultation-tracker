@@ -17,6 +17,8 @@ namespace ConsultNote;
 public partial class MainWindow : Window
 {
     private const string MileagePlaceholder = "0.0~5.0";
+    private const string PrepaymentPlaceholder = "선납금";
+    private const string DepositPlaceholder = "보증금";
     private readonly GridLength _openSidebarWidth = new(360);
     private bool _isSidebarOpen = true;
 
@@ -58,10 +60,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        viewModel.AddCustomer(
-            dialog.CustomerName,
-            dialog.CustomerPhone,
-            dialog.CustomerVehicleName);
+        _ = viewModel.AddCustomer(
+                dialog.CustomerName,
+                dialog.CustomerPhone,
+                dialog.CustomerVehicleName);
     }
 
     private void VehicleManagementButton_Click(object sender, RoutedEventArgs e)
@@ -83,14 +85,23 @@ public partial class MainWindow : Window
         }
 
         var exportText = BuildConsultationExportText();
-        Clipboard.SetText(exportText);
+        var exportPath = string.Empty;
+        try
+        {
+            Clipboard.SetText(exportText);
 
-        var exportDirectory = Path.Combine(AppPaths.LogsDirectory, "exports");
-        Directory.CreateDirectory(exportDirectory);
+            var exportDirectory = Path.Combine(AppPaths.LogsDirectory, "exports");
+            Directory.CreateDirectory(exportDirectory);
 
-        var customerName = SanitizeFileName(GetSelectedCustomer()?.Name ?? "consultation");
-        var exportPath = Path.Combine(exportDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}_{customerName}.txt");
-        File.WriteAllText(exportPath, exportText, Encoding.UTF8);
+            var customerName = SanitizeFileName(GetSelectedCustomer()?.Name ?? "consultation");
+            exportPath = Path.Combine(exportDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}_{customerName}.txt");
+            File.WriteAllText(exportPath, exportText, Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"첫통화 양식 저장 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
 
         MessageBox.Show(
             $"첫통화 양식을 클립보드에 복사했습니다.\n회사 사이트 상담내역에 바로 붙여넣을 수 있습니다.\n\n보조 txt 저장 위치:\n{exportPath}",
@@ -112,33 +123,44 @@ public partial class MainWindow : Window
             return;
         }
 
-        using var dbContext = new AppDbContext();
-        var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
-        if (customer is null)
+        try
         {
-            return;
+            using var dbContext = new AppDbContext();
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is null)
+            {
+                return;
+            }
+
+            customer.ContractType = RentRadioButton.IsChecked == true ? "렌트" : "리스";
+            customer.FormVehicleBrand = GetSelectedText(VehicleBrandComboBox);
+            customer.FormVehicleName = GetSelectedText(VehicleNameComboBox);
+            customer.FormFuelType = GetSelectedText(FuelTypeComboBox);
+            customer.VehicleName = TrimToNull(customer.FormVehicleName);
+            customer.FormVehicleDetail = CleanPlaceholder(VehicleDetailTextBox.Text, "상세 옵션");
+            customer.ContractPeriod = GetSelectedText(ContractPeriodComboBox);
+            customer.Mileage = mileage;
+            customer.DeliveryRegion = GetDeliveryRegionText();
+            customer.InitialCost = GetInitialCostText();
+            customer.OwnerType = GetOwnerType();
+            customer.HasBusinessExperienceOverOneYear = BusinessExperienceToggleButton.IsChecked == true;
+            customer.ActualDriver = TrimToNull(ActualDriverTextBox.Text);
+            customer.HasDriverLicenseOverOneYear = DriverLicenseToggleButton.IsChecked == true;
+            customer.InsuranceAge = GetSelectedText(InsuranceAgeComboBox);
+            customer.CreditStatus = TrimToNull(CreditStatusTextBox.Text);
+            customer.SpecialNote = TrimToNull(SpecialNoteTextBox.Text);
+            customer.IsContractHolderSameAsCustomer = ContractHolderSameAsCustomerCheckBox.IsChecked == true;
+            customer.ContractHolderName = TrimToNull(ContractHolderNameTextBox.Text);
+            customer.ContractHolderPhoneNumber = PhoneNumberFormatter.Normalize(ContractHolderPhoneTextBox.Text);
+            customer.UpdatedAt = DateTime.Now;
+
+            dbContext.SaveChanges();
+            GetViewModel()?.ReloadCustomers(customer.Id);
         }
-
-        customer.ContractType = RentRadioButton.IsChecked == true ? "렌트" : "리스";
-        customer.FormVehicleBrand = GetSelectedText(VehicleBrandComboBox);
-        customer.FormVehicleName = GetSelectedText(VehicleNameComboBox);
-        customer.FormFuelType = GetSelectedText(FuelTypeComboBox);
-        customer.FormVehicleDetail = CleanPlaceholder(VehicleDetailTextBox.Text, "상세 옵션");
-        customer.ContractPeriod = GetSelectedText(ContractPeriodComboBox);
-        customer.Mileage = mileage;
-        customer.DeliveryRegion = GetDeliveryRegionText();
-        customer.InitialCost = GetInitialCostText();
-        customer.OwnerType = GetOwnerType();
-        customer.HasBusinessExperienceOverOneYear = BusinessExperienceToggleButton.IsChecked == true;
-        customer.ActualDriver = TrimToNull(ActualDriverTextBox.Text);
-        customer.HasDriverLicenseOverOneYear = DriverLicenseToggleButton.IsChecked == true;
-        customer.InsuranceAge = GetSelectedText(InsuranceAgeComboBox);
-        customer.CreditStatus = TrimToNull(CreditStatusTextBox.Text);
-        customer.SpecialNote = TrimToNull(SpecialNoteTextBox.Text);
-        customer.UpdatedAt = DateTime.Now;
-
-        dbContext.SaveChanges();
-        GetViewModel()?.ReloadCustomers(customer.Id);
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
     }
 
     private void ConsultationLogSaveButton_Click(object sender, RoutedEventArgs e)
@@ -156,29 +178,64 @@ public partial class MainWindow : Window
             return;
         }
 
-        var now = DateTime.Now;
-        using var dbContext = new AppDbContext();
-        var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
-        if (customer is null)
+        try
+        {
+            var now = DateTime.Now;
+            var viewModel = GetViewModel();
+            using var dbContext = new AppDbContext();
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is null)
+            {
+                return;
+            }
+
+            dbContext.ConsultationLogs.Add(new ConsultationLog
+            {
+                CustomerId = customer.Id,
+                Content = content,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+
+            customer.LastConsultedAt = now;
+            customer.LastContactAttemptAt = now;
+            var nextStatus = viewModel?.SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
+            if (customer.Status != nextStatus)
+            {
+                customer.Status = nextStatus;
+                customer.StatusChangedAt = now;
+            }
+
+            customer.UpdatedAt = now;
+
+            dbContext.SaveChanges();
+            ConsultationContentTextBox.Text = string.Empty;
+            viewModel?.ReloadCustomers(customer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
+    private void SimilarConditionSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        var viewModel = GetViewModel();
+        if (viewModel is null)
         {
             return;
         }
 
-        dbContext.ConsultationLogs.Add(new ConsultationLog
+        var vehicleName = GetSelectedText(VehicleNameComboBox);
+        var searchText = TrimToNull(vehicleName) ?? TrimToNull(GetSelectedCustomer()?.VehicleName);
+
+        if (string.IsNullOrWhiteSpace(searchText))
         {
-            CustomerId = customer.Id,
-            Content = content,
-            CreatedAt = now,
-            UpdatedAt = now,
-        });
+            MessageBox.Show("검색할 차량이나 조건을 먼저 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
 
-        customer.LastConsultedAt = now;
-        customer.LastContactAttemptAt = now;
-        customer.UpdatedAt = now;
-
-        dbContext.SaveChanges();
-        ConsultationContentTextBox.Text = string.Empty;
-        GetViewModel()?.ReloadCustomers(customer.Id);
+        viewModel.SearchText = searchText;
     }
 
     private void MainWindowViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -216,31 +273,49 @@ public partial class MainWindow : Window
 
         var now = DateTime.Now;
         var customerFilesDirectory = Path.Combine(AppPaths.CustomersDirectory, selectedCustomer.Id.ToString(CultureInfo.InvariantCulture), "files");
-        Directory.CreateDirectory(customerFilesDirectory);
+        var destinationPath = string.Empty;
+        var storedFileName = string.Empty;
 
-        var extension = Path.GetExtension(dialog.SourceFilePath);
-        var unique = Guid.NewGuid().ToString("N")[..8];
-        var storedFileName = $"{now:yyyyMMdd_HHmmss}_{unique}{extension}";
-        var destinationPath = Path.Combine(customerFilesDirectory, storedFileName);
-
-        File.Copy(dialog.SourceFilePath, destinationPath, overwrite: false);
-
-        using var dbContext = new AppDbContext();
-        dbContext.CustomerFiles.Add(new CustomerFile
+        try
         {
-            CustomerId = selectedCustomer.Id,
-            OriginalFileName = dialog.OriginalFileName,
-            StoredFileName = storedFileName,
-            DisplayName = dialog.DisplayName,
-            FilePath = destinationPath,
-            FileType = dialog.FileType,
-            CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null,
-            Memo = dialog.Memo,
-            CreatedAt = now,
-        });
+            Directory.CreateDirectory(customerFilesDirectory);
 
-        dbContext.SaveChanges();
-        GetViewModel()?.ReloadCustomers(selectedCustomer.Id);
+            var extension = Path.GetExtension(dialog.SourceFilePath);
+            var unique = Guid.NewGuid().ToString("N")[..8];
+            storedFileName = $"{now:yyyyMMdd_HHmmss}_{unique}{extension}";
+            destinationPath = Path.Combine(customerFilesDirectory, storedFileName);
+
+            File.Copy(dialog.SourceFilePath, destinationPath, overwrite: false);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"파일 복사 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        try
+        {
+            using var dbContext = new AppDbContext();
+            dbContext.CustomerFiles.Add(new CustomerFile
+            {
+                CustomerId = selectedCustomer.Id,
+                OriginalFileName = dialog.OriginalFileName,
+                StoredFileName = storedFileName,
+                DisplayName = dialog.DisplayName,
+                FilePath = destinationPath,
+                FileType = dialog.FileType,
+                CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null,
+                Memo = dialog.Memo,
+                CreatedAt = now,
+            });
+
+            dbContext.SaveChanges();
+            GetViewModel()?.ReloadCustomers(selectedCustomer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
     }
 
     private void FileListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -253,7 +328,7 @@ public partial class MainWindow : Window
 
         if (!File.Exists(selectedFile.FilePath))
         {
-            MessageBox.Show("파일 경로가 존재하지 않습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"파일 경로가 존재하지 않습니다.\n\n{selectedFile.FilePath}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -297,6 +372,52 @@ public partial class MainWindow : Window
         }
     }
 
+    private void InitialCostTextBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBox textBox)
+        {
+            return;
+        }
+
+        var placeholder = GetInitialCostPlaceholder(textBox);
+        if (textBox.Text == placeholder)
+        {
+            textBox.Text = string.Empty;
+            textBox.Foreground = SystemColors.ControlTextBrush;
+        }
+    }
+
+    private void InitialCostTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBox textBox || !string.IsNullOrWhiteSpace(textBox.Text))
+        {
+            return;
+        }
+
+        SetInitialCostPlaceholder(textBox);
+    }
+
+    private void CustomerPhoneTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox textBox)
+        {
+            textBox.Text = PhoneNumberFormatter.Format(textBox.Text);
+        }
+    }
+
+    private void ContractHolderSameAsCustomerCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        var useCustomerInfo = ContractHolderSameAsCustomerCheckBox.IsChecked == true;
+        if (useCustomerInfo)
+        {
+            ContractHolderNameTextBox.Text = GetSelectedCustomer()?.Name == "-" ? string.Empty : GetSelectedCustomer()?.Name ?? string.Empty;
+            ContractHolderPhoneTextBox.Text = PhoneNumberFormatter.Format(GetSelectedCustomer()?.PhoneNumber);
+        }
+
+        ContractHolderNameTextBox.IsEnabled = !useCustomerInfo;
+        ContractHolderPhoneTextBox.IsEnabled = !useCustomerInfo;
+    }
+
     private string BuildConsultationExportText()
     {
         var vehicleSpec = string.Join(" ", new[]
@@ -310,6 +431,7 @@ public partial class MainWindow : Window
         _ = TryGetMileageValue(out var mileage);
 
         var consultationContent = GetLatestConsultationContent();
+        var specialNote = GetSpecialNoteExportText();
 
         return string.Join(Environment.NewLine, new[]
         {
@@ -325,14 +447,14 @@ public partial class MainWindow : Window
             $"★운전면허 : {FormatToggle(DriverLicenseToggleButton.IsChecked)}",
             $"★보험연령 : {GetSelectedText(InsuranceAgeComboBox)}",
             $"★신용상태 : {CreditStatusTextBox.Text.Trim()}",
-            $"★특이사항 : {SpecialNoteTextBox.Text.Trim()}",
+            $"★특이사항 : {specialNote}",
             $"★상담내용 : {consultationContent}",
         });
     }
 
     private void UpdateMileageCustomInput()
     {
-        var isCustomMileage = GetSelectedText(MileageComboBox) == "직접입력";
+        var isCustomMileage = GetMileageSelectedText() == "직접입력";
         MileageCustomTextBox.IsEnabled = isCustomMileage;
 
         if (isCustomMileage)
@@ -444,6 +566,10 @@ public partial class MainWindow : Window
         SetComboText(InsuranceAgeComboBox, customer.InsuranceAge);
         CreditStatusTextBox.Text = customer.CreditStatus ?? string.Empty;
         SpecialNoteTextBox.Text = customer.SpecialNote ?? string.Empty;
+        ContractHolderSameAsCustomerCheckBox.IsChecked = customer.IsContractHolderSameAsCustomer;
+        ContractHolderNameTextBox.Text = customer.ContractHolderName ?? string.Empty;
+        ContractHolderPhoneTextBox.Text = PhoneNumberFormatter.Format(customer.ContractHolderPhoneNumber);
+        ContractHolderSameAsCustomerCheckBox_Changed(ContractHolderSameAsCustomerCheckBox, new RoutedEventArgs());
     }
 
     private void ClearConditionForm()
@@ -462,8 +588,8 @@ public partial class MainWindow : Window
         DeliveryRegionComboBox.SelectedIndex = 0;
         DeliveryRegionDetailTextBox.Text = string.Empty;
         NoInitialCostCheckBox.IsChecked = false;
-        PrepaymentTextBox.Text = "선납금";
-        DepositTextBox.Text = "보증금";
+        SetInitialCostPlaceholder(PrepaymentTextBox);
+        SetInitialCostPlaceholder(DepositTextBox);
         PersonalOwnerRadioButton.IsChecked = true;
         SoleProprietorOwnerRadioButton.IsChecked = false;
         CorporateOwnerRadioButton.IsChecked = false;
@@ -473,6 +599,11 @@ public partial class MainWindow : Window
         InsuranceAgeComboBox.SelectedIndex = 1;
         CreditStatusTextBox.Text = string.Empty;
         SpecialNoteTextBox.Text = string.Empty;
+        ContractHolderSameAsCustomerCheckBox.IsChecked = false;
+        ContractHolderNameTextBox.Text = string.Empty;
+        ContractHolderPhoneTextBox.Text = string.Empty;
+        ContractHolderNameTextBox.IsEnabled = true;
+        ContractHolderPhoneTextBox.IsEnabled = true;
     }
 
     private string GetOwnerType()
@@ -497,7 +628,7 @@ public partial class MainWindow : Window
 
     private bool TryGetMileageValue(out string mileage)
     {
-        mileage = GetSelectedText(MileageComboBox);
+        mileage = GetMileageSelectedText();
         if (mileage != "직접입력")
         {
             return true;
@@ -522,6 +653,40 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private string? GetMileageSearchTerm()
+    {
+        var mileage = GetMileageSelectedText();
+        if (mileage != "직접입력")
+        {
+            return mileage;
+        }
+
+        var customMileage = CleanPlaceholder(MileageCustomTextBox.Text, MileagePlaceholder);
+        return string.IsNullOrWhiteSpace(customMileage) ? null : $"{customMileage}만km";
+    }
+
+    private string GetContractHolderText()
+    {
+        var name = ContractHolderNameTextBox.Text.Trim();
+        var phoneNumber = PhoneNumberFormatter.Format(ContractHolderPhoneTextBox.Text);
+        var values = new[] { name, phoneNumber }.Where(value => !string.IsNullOrWhiteSpace(value));
+        return string.Join(" / ", values);
+    }
+
+    private string GetSpecialNoteExportText()
+    {
+        var specialNote = SpecialNoteTextBox.Text.Trim();
+        var contractHolderText = GetContractHolderText();
+        if (string.IsNullOrWhiteSpace(contractHolderText))
+        {
+            return specialNote;
+        }
+
+        return string.IsNullOrWhiteSpace(specialNote)
+            ? $"명의자: {contractHolderText}"
+            : $"{specialNote} / 명의자: {contractHolderText}";
+    }
+
     private string GetDeliveryRegionText()
     {
         return string.Join(" ", new[]
@@ -540,6 +705,17 @@ public partial class MainWindow : Window
                 CleanPlaceholder(PrepaymentTextBox.Text, "선납금"),
                 CleanPlaceholder(DepositTextBox.Text, "보증금"),
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
+
+    private string GetMileageSelectedText()
+    {
+        return MileageComboBox.SelectedItem switch
+        {
+            ComboBoxItem item => item.Content?.ToString() ?? string.Empty,
+            string text => text,
+            object value => value.ToString() ?? string.Empty,
+            _ => MileageComboBox.Text.Trim(),
+        };
     }
 
     private static string GetSelectedText(ComboBox comboBox)
@@ -643,20 +819,45 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(initialCost))
         {
             NoInitialCostCheckBox.IsChecked = false;
+            SetInitialCostPlaceholder(PrepaymentTextBox);
+            SetInitialCostPlaceholder(DepositTextBox);
             return;
         }
 
         NoInitialCostCheckBox.IsChecked = initialCost == "없음";
         if (NoInitialCostCheckBox.IsChecked == true)
         {
-            PrepaymentTextBox.Text = "선납금";
-            DepositTextBox.Text = "보증금";
+            SetInitialCostPlaceholder(PrepaymentTextBox);
+            SetInitialCostPlaceholder(DepositTextBox);
             return;
         }
 
         var parts = initialCost.Split(" / ", StringSplitOptions.TrimEntries);
-        PrepaymentTextBox.Text = parts.ElementAtOrDefault(0) ?? "선납금";
-        DepositTextBox.Text = parts.ElementAtOrDefault(1) ?? "보증금";
+        SetInitialCostTextOrPlaceholder(PrepaymentTextBox, parts.ElementAtOrDefault(0));
+        SetInitialCostTextOrPlaceholder(DepositTextBox, parts.ElementAtOrDefault(1));
+    }
+
+    private static string GetInitialCostPlaceholder(TextBox textBox)
+    {
+        return textBox.Name == nameof(DepositTextBox) ? DepositPlaceholder : PrepaymentPlaceholder;
+    }
+
+    private static void SetInitialCostTextOrPlaceholder(TextBox textBox, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SetInitialCostPlaceholder(textBox);
+            return;
+        }
+
+        textBox.Text = value;
+        textBox.Foreground = SystemColors.ControlTextBrush;
+    }
+
+    private static void SetInitialCostPlaceholder(TextBox textBox)
+    {
+        textBox.Text = GetInitialCostPlaceholder(textBox);
+        textBox.Foreground = SystemColors.GrayTextBrush;
     }
 
     private void SetOwnerType(string? ownerType)
@@ -674,5 +875,14 @@ public partial class MainWindow : Window
         }
 
         return string.IsNullOrWhiteSpace(fileName) ? "consultation" : fileName;
+    }
+
+    private static void ShowDatabaseSaveError(Exception exception)
+    {
+        MessageBox.Show(
+            $"저장 중 오류가 발생했습니다.\n\n{exception.Message}",
+            "Consult Note",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
     }
 }
