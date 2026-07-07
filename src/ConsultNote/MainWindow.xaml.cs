@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private const string PrepaymentPlaceholder = "선납금";
     private const string DepositPlaceholder = "보증금";
     private readonly GridLength _openSidebarWidth = new(360);
+    private readonly GridLength _closedSidebarWidth = new(94);
     private bool _isSidebarOpen = true;
 
     public MainWindow()
@@ -36,9 +37,13 @@ public partial class MainWindow : Window
     {
         _isSidebarOpen = !_isSidebarOpen;
 
-        SidebarColumn.Width = _isSidebarOpen ? _openSidebarWidth : new GridLength(0);
+        SidebarColumn.Width = _isSidebarOpen ? _openSidebarWidth : _closedSidebarWidth;
         SidebarPanel.Visibility = _isSidebarOpen ? Visibility.Visible : Visibility.Collapsed;
-        SidebarToggleButton.Content = _isSidebarOpen ? "파일 닫기" : "파일 열기";
+        SidebarCollapsedPanel.Visibility = _isSidebarOpen ? Visibility.Collapsed : Visibility.Visible;
+        SidebarToggleButton.Content = "‹";
+        SidebarCollapsedToggleButton.Content = "›";
+        SidebarToggleButton.ToolTip = _isSidebarOpen ? "파일 닫기" : "파일 열기";
+        SidebarCollapsedToggleButton.ToolTip = SidebarToggleButton.ToolTip;
     }
 
     private void AddCustomerButton_Click(object sender, RoutedEventArgs e)
@@ -412,6 +417,11 @@ public partial class MainWindow : Window
         {
             ContractHolderNameTextBox.Text = GetSelectedCustomer()?.Name == "-" ? string.Empty : GetSelectedCustomer()?.Name ?? string.Empty;
             ContractHolderPhoneTextBox.Text = PhoneNumberFormatter.Format(GetSelectedCustomer()?.PhoneNumber);
+        }
+        else if (ContractHolderSameAsCustomerCheckBox.IsFocused)
+        {
+            ContractHolderNameTextBox.Text = string.Empty;
+            ContractHolderPhoneTextBox.Text = string.Empty;
         }
 
         ContractHolderNameTextBox.IsEnabled = !useCustomerInfo;
