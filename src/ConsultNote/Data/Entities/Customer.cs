@@ -14,6 +14,12 @@ public sealed class Customer
 
     public string? Memo { get; set; }
 
+    public CustomerStatus Status { get; set; } = CustomerStatus.Consulting;
+
+    public DateTime? StatusChangedAt { get; set; }
+
+    public DateTime? LastContactAttemptAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

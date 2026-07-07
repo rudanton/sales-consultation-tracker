@@ -26,6 +26,12 @@ public sealed class AppDbContext : DbContext
     {
         modelBuilder.Entity<Customer>(entity =>
         {
+            entity.Property(customer => customer.Status)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .HasDefaultValue(CustomerStatus.Consulting)
+                .IsRequired();
+
             entity.Property(customer => customer.CreatedAt).IsRequired();
             entity.Property(customer => customer.UpdatedAt).IsRequired();
 
