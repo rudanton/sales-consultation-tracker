@@ -1,0 +1,66 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+out/
+publish/
+artifacts/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# .NET / C#
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.ncrunch*
+*.dotCover
+*.opencover.xml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.assets.json
+
+# Logs
+*.log
+logs/
+
+# Local app data
+consultnote.db
+consultnote.db-*
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+storage/
+backup/
+
+# Runtime files
+*.pid
+*.seed
+*.tmp
+*.temp
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
