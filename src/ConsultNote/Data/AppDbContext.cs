@@ -1,5 +1,6 @@
 using ConsultNote.Infrastructure;
 using ConsultNote.Data.Entities;
+using ConsultNote.Data.Seed;
 using Microsoft.EntityFrameworkCore;
 
 namespace ConsultNote.Data;
@@ -13,6 +14,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Estimate> Estimates => Set<Estimate>();
 
     public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -75,6 +78,26 @@ public sealed class AppDbContext : DbContext
             entity.Property(attachment => attachment.StoredFileName).IsRequired();
             entity.Property(attachment => attachment.FilePath).IsRequired();
             entity.Property(attachment => attachment.CreatedAt).IsRequired();
+        });
+
+        modelBuilder.Entity<Vehicle>(entity =>
+        {
+            entity.Property(vehicle => vehicle.Name)
+                .HasMaxLength(120)
+                .IsRequired();
+
+            entity.Property(vehicle => vehicle.Brand)
+                .HasMaxLength(80);
+
+            entity.Property(vehicle => vehicle.FuelTypes)
+                .HasMaxLength(120);
+
+            entity.Property(vehicle => vehicle.CreatedAt).IsRequired();
+            entity.Property(vehicle => vehicle.UpdatedAt).IsRequired();
+
+            entity.HasIndex(vehicle => vehicle.Name);
+
+            entity.HasData(VehicleSeed.Items);
         });
     }
 }

@@ -55,6 +55,23 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
+        <Style x:Key="ProminentToggleButton" TargetType="ToggleButton">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="CustomerItem" TargetType="ListBoxItem">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,0,0,8" />
@@ -67,6 +84,63 @@
             <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
+
+        <DataTemplate x:Key="CustomerTemplate">
+            <Border Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" />
+                            <TextBlock Text="{Binding StatusText}"
+                                       Style="{StaticResource MutedText}"
+                                       Margin="8,2,0,0" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding RecentText}"
+                                   Style="{StaticResource MutedText}" />
+                    </Grid>
+                    <TextBlock Text="{Binding ContactDetail}" Margin="0,5,0,0" />
+                    <TextBlock Text="{Binding MemoPreview}"
+                               Style="{StaticResource MutedText}"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ConsultationLogTemplate">
+            <Border BorderBrush="#E2E8F0"
+                    BorderThickness="0,0,0,1"
+                    Padding="0,0,0,12"
+                    Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Content}" Margin="0,5,0,0" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="FileTemplate">
+            <Border Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10">
+                <StackPanel>
+                    <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Summary}"
+                               Style="{StaticResource MutedText}"
+                               Margin="0,3,0,0" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid Margin="14">
@@ -93,13 +167,13 @@
                                Margin="0,2,0,0" />
                 </StackPanel>
 
-                <Grid Grid.Column="1" VerticalAlignment="Center">
-                    <TextBox Height="38"
-                             Padding="12,8"
-                             FontSize="14"
-                             Text="K5 / 김민수 / 010 / 월 50"
-                             Foreground="#334155" />
-                </Grid>
+                <TextBox Grid.Column="1"
+                         Height="38"
+                         Padding="12,8"
+                         FontSize="14"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Foreground="#334155"
+                         VerticalAlignment="Center" />
 
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
@@ -107,7 +181,8 @@
                             Margin="14,0,0,0">
                     <Button Content="고객 추가"
                             Style="{StaticResource PrimaryButton}"
-                            Margin="0,0,8,0" />
+                            Margin="0,0,8,0"
+                            Command="{Binding AddCustomerCommand}" />
                     <Button x:Name="SidebarToggleButton"
                             Content="파일 닫기"
                             Style="{StaticResource ToolbarButton}"
@@ -141,15 +216,14 @@
                             <ColumnDefinition Width="86" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="고객 목록" Style="{StaticResource SectionTitle}" />
-                        <ComboBox Grid.Column="1" Height="30" SelectedIndex="0">
-                            <ComboBoxItem Content="등록순" />
-                            <ComboBoxItem Content="최근 상담순" />
-                            <ComboBoxItem Content="상태순" />
-                        </ComboBox>
-                        <ComboBox Grid.Column="3" Height="30" SelectedIndex="1">
-                            <ComboBoxItem Content="오름" />
-                            <ComboBoxItem Content="내림" />
-                        </ComboBox>
+                        <ComboBox Grid.Column="1"
+                                  Height="30"
+                                  ItemsSource="{Binding SortOptions}"
+                                  SelectedItem="{Binding SelectedSortOption}" />
+                        <ComboBox Grid.Column="3"
+                                  Height="30"
+                                  ItemsSource="{Binding SortDirections}"
+                                  SelectedItem="{Binding SelectedSortDirection}" />
                     </Grid>
 
                     <Border Grid.Row="1"
@@ -161,81 +235,19 @@
                             Margin="0,0,0,12">
                         <StackPanel>
                             <TextBlock Text="빠른 검색 결과" FontWeight="SemiBold" />
-                            <TextBlock Text="K5 조건과 월 50만원 전후 견적을 가진 고객 3명"
+                            <TextBlock Text="{Binding SearchSummary}"
                                        Style="{StaticResource MutedText}"
                                        Margin="0,3,0,0" />
                         </StackPanel>
                     </Border>
 
                     <ListBox Grid.Row="2"
+                             ItemsSource="{Binding Customers}"
+                             SelectedItem="{Binding SelectedCustomer}"
+                             ItemTemplate="{StaticResource CustomerTemplate}"
                              BorderThickness="0"
                              Background="Transparent"
-                             SelectedIndex="0"
-                             ItemContainerStyle="{StaticResource CustomerItem}">
-                        <ListBoxItem>
-                            <Border Background="{StaticResource SoftAccentBrush}"
-                                    BorderBrush="#BBD1FF"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12">
-                                <StackPanel>
-                                    <Grid>
-                                        <TextBlock Text="김민수" FontWeight="Bold" FontSize="15" />
-                                        <TextBlock Text="최근 10:30"
-                                                   Style="{StaticResource MutedText}"
-                                                   HorizontalAlignment="Right" />
-                                    </Grid>
-                                    <TextBlock Text="상담중 · 010-1234-5678 · K5 하이브리드"
-                                               Margin="0,5,0,0" />
-                                    <TextBlock Text="월 50만원 이하 희망, 배우자와 상의 예정"
-                                               Style="{StaticResource MutedText}"
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Border>
-                        </ListBoxItem>
-                        <ListBoxItem>
-                            <Border Background="#FFFFFF"
-                                    BorderBrush="#E2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12">
-                                <StackPanel>
-                                    <Grid>
-                                        <TextBlock Text="박지훈" FontWeight="Bold" FontSize="15" />
-                                        <TextBlock Text="어제"
-                                                   Style="{StaticResource MutedText}"
-                                                   HorizontalAlignment="Right" />
-                                    </Grid>
-                                    <TextBlock Text="부재 · 3일 경과 · 010-7788-9012 · K5 / 쏘나타 비교"
-                                               Margin="0,5,0,0" />
-                                    <TextBlock Text="초기비용 낮은 조건 선호"
-                                               Style="{StaticResource MutedText}"
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Border>
-                        </ListBoxItem>
-                        <ListBoxItem>
-                            <Border Background="#FFFFFF"
-                                    BorderBrush="#E2E8F0"
-                                    BorderThickness="1"
-                                    CornerRadius="6"
-                                    Padding="12">
-                                <StackPanel>
-                                    <Grid>
-                                        <TextBlock Text="이서연" FontWeight="Bold" FontSize="15" />
-                                        <TextBlock Text="07-05"
-                                                   Style="{StaticResource MutedText}"
-                                                   HorizontalAlignment="Right" />
-                                    </Grid>
-                                    <TextBlock Text="심사 · 010-4567-2200 · 아반떼 / K5 문의"
-                                               Margin="0,5,0,0" />
-                                    <TextBlock Text="사업자등록증 확인 필요"
-                                               Style="{StaticResource MutedText}"
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Border>
-                        </ListBoxItem>
-                    </ListBox>
+                             ItemContainerStyle="{StaticResource CustomerItem}" />
                 </Grid>
             </Border>
 
@@ -253,8 +265,14 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="김민수" FontSize="24" FontWeight="Bold" />
-                            <TextBlock Text="상담중 · 010-1234-5678 · K5 하이브리드 · 회사 DB #A-1042"
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding SelectedCustomer.Name}" FontSize="24" FontWeight="Bold" />
+                                <TextBlock Text="{Binding SelectedCustomer.StatusText}"
+                                           Foreground="{StaticResource MutedTextBrush}"
+                                           FontSize="14"
+                                           Margin="10,9,0,0" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedCustomer.HeaderDetail}"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Margin="0,4,0,0" />
                         </StackPanel>
@@ -264,33 +282,7 @@
                                 VerticalAlignment="Top" />
                     </Grid>
 
-                    <Grid Grid.Row="1" Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Background="#F8FAFC" CornerRadius="6" Padding="12" Margin="0,0,8,0">
-                            <StackPanel>
-                                <TextBlock Text="최근 상담" Style="{StaticResource MutedText}" />
-                                <TextBlock Text="2026-07-07 10:30" FontWeight="SemiBold" Margin="0,3,0,0" />
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Background="#F8FAFC" CornerRadius="6" Padding="12" Margin="4,0">
-                            <StackPanel>
-                                <TextBlock Text="관심 조건" Style="{StaticResource MutedText}" />
-                                <TextBlock Text="월 50만원 이하" FontWeight="SemiBold" Margin="0,3,0,0" />
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Background="#F8FAFC" CornerRadius="6" Padding="12" Margin="8,0,0,0">
-                            <StackPanel>
-                                <TextBlock Text="참고 후보" Style="{StaticResource MutedText}" />
-                                <TextBlock Text="K5 유사 견적 2건" FontWeight="SemiBold" Margin="0,3,0,0" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="1">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -301,26 +293,183 @@
                                 BorderBrush="#E2E8F0"
                                 BorderThickness="1"
                                 CornerRadius="6"
-                                Padding="12"
+                                Padding="20,14"
                                 Margin="0,0,0,12">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="86" />
+                                    <RowDefinition Height="270" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="새 상담 기록" FontWeight="SemiBold" Margin="0,0,0,8" />
-                                <TextBox Grid.Row="1"
-                                         TextWrapping="Wrap"
-                                         AcceptsReturn="True"
-                                         VerticalScrollBarVisibility="Auto"
-                                         Padding="10"
-                                         Text="K5 견적 안내 후 배우자와 상의 예정. 유사 조건 견적 다시 확인 필요." />
-                                <Button Grid.Row="2"
-                                        Content="기록 추가"
-                                        Style="{StaticResource PrimaryButton}"
-                                        HorizontalAlignment="Right"
-                                        Margin="0,10,0,0" />
+                                <TextBlock Text="상담 조건 양식" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+                                <ScrollViewer Grid.Row="1"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Padding="4,0">
+                                    <StackPanel>
+                                        <UniformGrid Columns="2" Margin="0,0,0,10">
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="렌트/리스" Style="{StaticResource MutedText}" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <RadioButton Content="렌트" GroupName="ContractType" IsChecked="True" Margin="0,0,14,0" />
+                                                    <RadioButton Content="리스" GroupName="ContractType" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="차량스팩" Style="{StaticResource MutedText}" />
+                                                <Grid Margin="0,5,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="82" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="118" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="92" />
+                                                        <ColumnDefinition Width="6" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox ItemsSource="{Binding VehicleBrands}"
+                                                              SelectedItem="{Binding SelectedVehicleBrand}" />
+                                                    <ComboBox Grid.Column="2"
+                                                              ItemsSource="{Binding VehicleNames}"
+                                                              SelectedItem="{Binding SelectedVehicleName}" />
+                                                    <ComboBox Grid.Column="4"
+                                                              ItemsSource="{Binding FuelTypes}"
+                                                              SelectedItem="{Binding SelectedFuelType}" />
+                                                    <TextBox Grid.Column="6" Text="상세 옵션" Padding="8,4" Foreground="{StaticResource MutedTextBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="계약기간" Style="{StaticResource MutedText}" />
+                                                <ComboBox SelectedIndex="2" Margin="0,5,0,0">
+                                                    <ComboBoxItem Content="단기" />
+                                                    <ComboBoxItem Content="36개월" />
+                                                    <ComboBoxItem Content="48개월" />
+                                                    <ComboBoxItem Content="60개월" />
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="주행거리" Style="{StaticResource MutedText}" />
+                                                <Grid Margin="0,5,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="130" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox SelectedIndex="2">
+                                                        <ComboBoxItem Content="1만km" />
+                                                        <ComboBoxItem Content="1.5만km" />
+                                                        <ComboBoxItem Content="2만km" />
+                                                        <ComboBoxItem Content="2.5만km" />
+                                                        <ComboBoxItem Content="3만km" />
+                                                        <ComboBoxItem Content="3.5만km" />
+                                                        <ComboBoxItem Content="4만km" />
+                                                        <ComboBoxItem Content="4.5만km" />
+                                                        <ComboBoxItem Content="5만km" />
+                                                        <ComboBoxItem Content="무제한" />
+                                                        <ComboBoxItem Content="직접입력" />
+                                                    </ComboBox>
+                                                    <TextBox Grid.Column="2"
+                                                             Text="0.0~5.0"
+                                                             Padding="8,4"
+                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             ToolTip="직접입력 선택 시 0~5 사이, 소수점 1자리까지 입력" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="인도지역" Style="{StaticResource MutedText}" />
+                                                <Grid Margin="0,5,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="120" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox SelectedIndex="0">
+                                                        <ComboBoxItem Content="서울" />
+                                                        <ComboBoxItem Content="경기" />
+                                                        <ComboBoxItem Content="인천" />
+                                                        <ComboBoxItem Content="부산" />
+                                                        <ComboBoxItem Content="대구" />
+                                                    </ComboBox>
+                                                    <TextBox Grid.Column="2" Text="강남구" Padding="8,4" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="초기비용" Style="{StaticResource MutedText}" />
+                                                <Grid Margin="0,5,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="70" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="8" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox Content="없음" VerticalAlignment="Center" />
+                                                    <TextBox Grid.Column="2" Text="선납금" Padding="8,4" Foreground="{StaticResource MutedTextBrush}" />
+                                                    <TextBox Grid.Column="4" Text="보증금" Padding="8,4" Foreground="{StaticResource MutedTextBrush}" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="명의형태" Style="{StaticResource MutedText}" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <RadioButton Content="개인" GroupName="OwnerType" IsChecked="True" Margin="0,0,12,0" />
+                                                    <RadioButton Content="개인사업자" GroupName="OwnerType" Margin="0,0,12,0" />
+                                                    <RadioButton Content="법인사업자" GroupName="OwnerType" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="사업업력 / 운전면허" Style="{StaticResource MutedText}" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <ToggleButton Content="사업업력 1년 이상"
+                                                                  Style="{StaticResource ProminentToggleButton}"
+                                                                  Margin="0,0,8,0" />
+                                                    <ToggleButton Content="운전면허 1년 이상"
+                                                                  Style="{StaticResource ProminentToggleButton}"
+                                                                  IsChecked="True" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="실운전자" Style="{StaticResource MutedText}" />
+                                                <TextBox Text="김민수 본인" Padding="8,4" Margin="0,5,0,0" />
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="보험연령" Style="{StaticResource MutedText}" />
+                                                <ComboBox SelectedIndex="1" Margin="0,5,0,0">
+                                                    <ComboBoxItem Content="21세 이상" />
+                                                    <ComboBoxItem Content="26세 이상" />
+                                                    <ComboBoxItem Content="35세 이상" />
+                                                    <ComboBoxItem Content="70세 이상" />
+                                                </ComboBox>
+                                            </StackPanel>
+
+                                            <StackPanel Margin="0,0,8,10">
+                                                <TextBlock Text="신용상태" Style="{StaticResource MutedText}" />
+                                                <TextBox Text="무난 / 추가 확인 필요" Padding="8,4" Margin="0,5,0,0" />
+                                            </StackPanel>
+
+                                            <StackPanel Margin="8,0,0,10">
+                                                <TextBlock Text="특이사항" Style="{StaticResource MutedText}" />
+                                                <TextBox Text="배우자와 상의 후 재연락" Padding="8,4" Margin="0,5,0,0" />
+                                            </StackPanel>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </ScrollViewer>
+
+                                <StackPanel Grid.Row="2"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,10,0,0">
+                                    <Button Content="양식 저장"
+                                            Style="{StaticResource PrimaryButton}" />
+                                </StackPanel>
                             </Grid>
                         </Border>
 
@@ -337,27 +486,8 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="상담 기록 쓰레드" Style="{StaticResource SectionTitle}" />
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                    <StackPanel>
-                                        <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0,0,0,12" Margin="0,0,0,12">
-                                            <StackPanel>
-                                                <TextBlock Text="2026-07-07 10:30" Style="{StaticResource MutedText}" />
-                                                <TextBlock Text="K5 문의. 월 50만원 이하 희망. 배우자와 상의 후 재연락 예정."
-                                                           Margin="0,5,0,0" />
-                                            </StackPanel>
-                                        </Border>
-                                        <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0,0,0,12" Margin="0,0,0,12">
-                                            <StackPanel>
-                                                <TextBlock Text="2026-07-06 16:15" Style="{StaticResource MutedText}" />
-                                                <TextBlock Text="초기비용 낮은 조건 선호. 박지훈 고객의 K5 견적 조건 참고 가능."
-                                                           Margin="0,5,0,0" />
-                                            </StackPanel>
-                                        </Border>
-                                        <StackPanel>
-                                            <TextBlock Text="2026-07-06 11:05" Style="{StaticResource MutedText}" />
-                                            <TextBlock Text="회사 DB에서 문의 확인. K5 하이브리드와 쏘나타를 비교 중."
-                                                       Margin="0,5,0,0" />
-                                        </StackPanel>
-                                    </StackPanel>
+                                    <ItemsControl ItemsSource="{Binding SelectedCustomer.ConsultationLogs}"
+                                                  ItemTemplate="{StaticResource ConsultationLogTemplate}" />
                                 </ScrollViewer>
                             </Grid>
                         </Border>
@@ -404,13 +534,12 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <Border x:Name="PreviewVisual"
-                                    Background="#DBEAFE"
+                            <Border Background="#DBEAFE"
                                     BorderBrush="#93C5FD"
                                     BorderThickness="1"
                                     CornerRadius="4">
                                 <Grid>
-                                    <TextBlock Text="견적 이미지"
+                                    <TextBlock Text="{Binding SelectedFile.PreviewLabel}"
                                                FontSize="22"
                                                FontWeight="Bold"
                                                Foreground="#1D4ED8"
@@ -419,11 +548,8 @@
                                 </Grid>
                             </Border>
                             <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                                <TextBlock x:Name="PreviewTitle"
-                                           Text="estimate_20260707_k5.png"
-                                           FontWeight="SemiBold" />
-                                <TextBlock x:Name="PreviewMeta"
-                                           Text="K5 하이브리드 · 월 498,000원 · 안내완료"
+                                <TextBlock Text="{Binding SelectedFile.PreviewTitle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedFile.PreviewMeta}"
                                            Style="{StaticResource MutedText}"
                                            Margin="0,2,0,0" />
                             </StackPanel>
@@ -436,46 +562,13 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <TextBlock Text="파일 목록" Style="{StaticResource SectionTitle}" />
-                        <ListBox x:Name="FileList"
-                                 Grid.Row="1"
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding SelectedCustomer.Files}"
+                                 SelectedItem="{Binding SelectedFile}"
+                                 ItemTemplate="{StaticResource FileTemplate}"
                                  BorderThickness="0"
                                  Background="Transparent"
-                                 SelectedIndex="0"
-                                 SelectionChanged="FileList_SelectionChanged"
-                                 ItemContainerStyle="{StaticResource FileItem}">
-                            <ListBoxItem Tag="estimate_20260707_k5.png|K5 하이브리드 · 월 498,000원 · 안내완료|Estimate">
-                                <Border Background="{StaticResource SoftAccentBrush}" BorderBrush="#BBD1FF" BorderThickness="1" CornerRadius="6" Padding="10">
-                                    <StackPanel>
-                                        <TextBlock Text="estimate_20260707_k5.png" FontWeight="SemiBold" />
-                                        <TextBlock Text="K5 하이브리드 · 월 498,000원" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </ListBoxItem>
-                            <ListBoxItem Tag="estimate_20260706_k5_lowdown.jpg|K5 · 초기비용 낮은 조건 · 참고용|Estimate">
-                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10">
-                                    <StackPanel>
-                                        <TextBlock Text="estimate_20260706_k5_lowdown.jpg" FontWeight="SemiBold" />
-                                        <TextBlock Text="박지훈 고객 유사 조건" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </ListBoxItem>
-                            <ListBoxItem Tag="license_kim.jpg|면허증 이미지 · 첨부파일|Attachment">
-                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10">
-                                    <StackPanel>
-                                        <TextBlock Text="license_kim.jpg" FontWeight="SemiBold" />
-                                        <TextBlock Text="면허증 이미지" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </ListBoxItem>
-                            <ListBoxItem Tag="contract_draft.pdf|계약서 초안 · PDF 문서|Attachment">
-                                <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10">
-                                    <StackPanel>
-                                        <TextBlock Text="contract_draft.pdf" FontWeight="SemiBold" />
-                                        <TextBlock Text="계약 관련 첨부" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Border>
-                            </ListBoxItem>
-                        </ListBox>
+                                 ItemContainerStyle="{StaticResource FileItem}" />
                     </Grid>
                 </Grid>
             </Border>
