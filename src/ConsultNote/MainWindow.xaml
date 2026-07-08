@@ -538,7 +538,8 @@
                                                               IsEditable="False"
                                                               IsTextSearchEnabled="True"
                                                               ItemsSource="{Binding VehicleNames}"
-                                                              SelectedItem="{Binding SelectedVehicleName}" />
+                                                              SelectedItem="{Binding SelectedVehicleName}"
+                                                              SelectionChanged="VehicleNameComboBox_SelectionChanged" />
                                                     <ComboBox x:Name="FuelTypeComboBox"
                                                               Grid.Column="4"
                                                               IsEditable="False"
@@ -935,6 +936,8 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="116" />
                             </Grid.RowDefinitions>
                             <TextBlock Text="파일 목록" Style="{StaticResource SectionTitle}" />
                             <Grid Grid.Row="1" Margin="0,0,0,10">
@@ -959,6 +962,18 @@
                                      BorderThickness="0"
                                      Background="Transparent"
                                      MouseDoubleClick="FileListBox_MouseDoubleClick"
+                                     ItemContainerStyle="{StaticResource FileItem}" />
+                            <TextBlock x:Name="ReferenceEstimateTitleTextBlock"
+                                       Grid.Row="3"
+                                       Text="같은 차량 견적"
+                                       Style="{StaticResource SectionTitle}"
+                                       Margin="0,12,0,6" />
+                            <ListBox x:Name="ReferenceEstimateListBox"
+                                     Grid.Row="4"
+                                     ItemTemplate="{StaticResource FileTemplate}"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     MouseDoubleClick="ReferenceEstimateListBox_MouseDoubleClick"
                                      ItemContainerStyle="{StaticResource FileItem}" />
                         </Grid>
                     </Grid>

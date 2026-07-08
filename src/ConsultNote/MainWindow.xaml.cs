@@ -81,6 +81,7 @@ public partial class MainWindow : Window
         }
 
         RefreshFileListControls();
+        RefreshReferenceEstimateList();
         UpdateSelectedFilePreview();
     }
 
@@ -781,6 +782,16 @@ public partial class MainWindow : Window
         SelectFirstVisibleFileIfNeeded();
     }
 
+    private void VehicleNameComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        RefreshReferenceEstimateList();
+    }
+
     private void FileListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         EditSelectedFileMetadata();
@@ -800,6 +811,14 @@ public partial class MainWindow : Window
         }
 
         OpenFile(selectedFile);
+    }
+
+    private void ReferenceEstimateListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (ReferenceEstimateListBox.SelectedItem is FileItemViewModel selectedFile)
+        {
+            OpenFile(selectedFile);
+        }
     }
 
     private void OpenFile(FileItemViewModel selectedFile)
@@ -1112,6 +1131,52 @@ public partial class MainWindow : Window
         RefreshFileTypeFilterOptions();
         ApplyFileListView();
         SelectFirstVisibleFileIfNeeded();
+    }
+
+    private void RefreshReferenceEstimateList()
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        var vehicleName = GetSelectedVehicleNameForSearch() ?? TrimToNull(selectedCustomer?.VehicleName);
+        if (selectedCustomer is null || string.IsNullOrWhiteSpace(vehicleName) || vehicleName == "-")
+        {
+            ReferenceEstimateTitleTextBlock.Text = "같은 차량 견적";
+            ReferenceEstimateListBox.ItemsSource = Array.Empty<FileItemViewModel>();
+            return;
+        }
+
+        using var dbContext = new AppDbContext();
+        var estimates = dbContext.Customers
+            .Include(customer => customer.CustomerFiles)
+            .AsNoTracking()
+            .Where(customer => customer.Id != selectedCustomer.Id && customer.Status != CustomerStatus.Discarded)
+            .AsEnumerable()
+            .Where(customer => string.Equals(
+                TrimToNull(customer.FormVehicleName) ?? TrimToNull(customer.VehicleName),
+                vehicleName,
+                StringComparison.CurrentCultureIgnoreCase))
+            .SelectMany(customer => customer.CustomerFiles
+                .Where(file => IsEstimateFileType(file.FileType, file.CustomFileType))
+                .OrderByDescending(file => file.CreatedAt)
+                .Select(file => new FileItemViewModel
+                {
+                    Id = file.Id,
+                    FileName = file.DisplayName,
+                    FilePath = file.FilePath,
+                    FileType = GetDisplayFileType(file.FileType, file.CustomFileType),
+                    FileOrder = file.FileOrder,
+                    Summary = $"{customer.Name} · {file.CreatedAt:yyyy-MM-dd}",
+                    PreviewTitle = file.DisplayName,
+                    PreviewMeta = $"{customer.Name} · {file.CreatedAt:yyyy-MM-dd}",
+                    PreviewLabel = file.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(file.FileType, file.CustomFileType),
+                    CreatedAt = file.CreatedAt,
+                }))
+            .Take(8)
+            .ToList();
+
+        ReferenceEstimateTitleTextBlock.Text = estimates.Count == 0
+            ? $"같은 차량 견적 없음 · {vehicleName}"
+            : $"같은 차량 견적 {estimates.Count}건 · {vehicleName}";
+        ReferenceEstimateListBox.ItemsSource = estimates;
     }
 
     private void RefreshFileTypeFilterOptions()
