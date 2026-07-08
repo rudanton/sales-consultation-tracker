@@ -242,7 +242,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             return string.IsNullOrWhiteSpace(SearchText)
                 ? $"{totalText} · 검색어를 입력하면 즉시 좁혀집니다"
-                : $"{totalText} · 이름/전화/차량/상담/고객 파일에서 검색";
+                : $"{totalText} · 이름/전화/차종에서 검색";
         }
     }
 
@@ -341,15 +341,8 @@ public sealed class MainWindowViewModel : ObservableObject
         return Contains(customer.Name, keyword)
             || PhoneNumberFormatter.Contains(customer.PhoneNumber, keyword)
             || Contains(customer.VehicleName, keyword)
-            || Contains(customer.MemoPreview, keyword)
             || Contains(customer.ConditionSummary, keyword)
-            || Contains(customer.SimilarEstimateSummary, keyword)
-            || customer.ConsultationLogs.Any(log => Contains(log.Content, keyword))
-            || customer.Files.Any(file =>
-                Contains(file.FileName, keyword)
-                || Contains(file.FileType, keyword)
-                || Contains(file.Summary, keyword)
-                || Contains(file.PreviewMeta, keyword));
+            || Contains(customer.VehicleSummary, keyword);
     }
 
     public int AddCustomer(string name, string? phoneNumber, string? vehicleName)
