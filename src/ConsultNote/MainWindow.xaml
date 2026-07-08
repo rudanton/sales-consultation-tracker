@@ -248,6 +248,10 @@
                 Padding="14"
                 Margin="0,0,0,12">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -295,6 +299,29 @@
                             Style="{StaticResource ToolbarButton}"
                             Click="VehicleManagementButton_Click" />
                 </StackPanel>
+
+                <Border Grid.Row="1"
+                        Grid.ColumnSpan="3"
+                        Background="#F8FAFC"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,7"
+                        Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding DashboardSummary}"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding DashboardStatusSummary}"
+                                   Style="{StaticResource MutedText}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 

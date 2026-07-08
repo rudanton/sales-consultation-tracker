@@ -246,6 +246,36 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    public string DashboardSummary
+    {
+        get
+        {
+            var activeCustomers = _allCustomers.Where(customer => customer.Status != CustomerStatus.Discarded).ToList();
+            var recentConsultations = activeCustomers.Count(customer => customer.LastConsultedAt is not null && customer.LastConsultedAt.Value.Date >= DateTime.Today.AddDays(-7));
+            var monthlyEstimateCount = activeCustomers
+                .SelectMany(customer => customer.Files)
+                .Count(file => file.FileType == "견적" && file.CreatedAt.Year == DateTime.Today.Year && file.CreatedAt.Month == DateTime.Today.Month);
+
+            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 이번 달 견적 {monthlyEstimateCount}건";
+        }
+    }
+
+    public string DashboardStatusSummary
+    {
+        get
+        {
+            var activeCustomers = _allCustomers.Where(customer => customer.Status != CustomerStatus.Discarded).ToList();
+            return string.Join(" · ", new[]
+            {
+                $"상담중 {activeCustomers.Count(customer => customer.Status == CustomerStatus.Consulting)}",
+                $"부재 {activeCustomers.Count(customer => customer.Status == CustomerStatus.NoAnswer || customer.Status == CustomerStatus.LongNoAnswer)}",
+                $"심사 {activeCustomers.Count(customer => customer.Status == CustomerStatus.Screening)}",
+                $"계약완료 {activeCustomers.Count(customer => customer.Status == CustomerStatus.ContractCompleted)}",
+                $"인도완료 {activeCustomers.Count(customer => customer.Status == CustomerStatus.Delivered)}",
+            });
+        }
+    }
+
     public void ReloadCustomers(int? selectedCustomerId = null)
     {
         selectedCustomerId ??= SelectedCustomer?.Id;
@@ -304,6 +334,8 @@ public sealed class MainWindowViewModel : ObservableObject
 
         SelectedCustomer = GetCustomerToSelect(selectedId);
         OnPropertyChanged(nameof(SearchSummary));
+        OnPropertyChanged(nameof(DashboardSummary));
+        OnPropertyChanged(nameof(DashboardStatusSummary));
     }
 
     private CustomerItemViewModel? GetCustomerToSelect(int? selectedId)
