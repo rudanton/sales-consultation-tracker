@@ -255,7 +255,12 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,18,0">
-                    <TextBlock Text="Consult Note" FontSize="21" FontWeight="Bold" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Consult Note" FontSize="21" FontWeight="Bold" />
+                        <TextBlock x:Name="AppVersionTextBlock"
+                                   Style="{StaticResource MutedText}"
+                                   Margin="8,7,0,0" />
+                    </StackPanel>
                     <TextBlock Text="상담 기록과 견적 파일을 빠르게 찾는 개인 작업대"
                                Style="{StaticResource MutedText}"
                                Margin="0,2,0,0" />

@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -36,11 +37,20 @@ public partial class MainWindow : Window
         viewModel.PropertyChanged += MainWindowViewModel_PropertyChanged;
         DataContext = viewModel;
         ApplySidebarState();
+        ApplyAppVersion();
         EnsureFileListOptions();
         UpdateMileageCustomInput();
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+    }
+
+    private void ApplyAppVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        AppVersionTextBlock.Text = version is null
+            ? string.Empty
+            : $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
