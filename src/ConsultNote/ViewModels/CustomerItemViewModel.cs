@@ -25,6 +25,10 @@ public sealed class CustomerItemViewModel
 
     public required string MemoPreview { get; init; }
 
+    public bool IsFavorite { get; init; }
+
+    public string? DiscardReason { get; init; }
+
     public required string ConditionSummary { get; init; }
 
     public required string SimilarEstimateSummary { get; init; }

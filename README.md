@@ -89,3 +89,11 @@ storage/
 
 - [SRS](docs/srs.md): 요구사항 명세
 - [TODO](docs/TODO.md): 개발 작업 목록
+
+## 배포 zip 생성
+
+```powershell
+.\scripts\publish.ps1
+```
+
+생성된 zip 파일은 `dist/` 폴더에 저장된다.

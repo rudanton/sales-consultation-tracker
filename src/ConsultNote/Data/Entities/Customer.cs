@@ -14,6 +14,10 @@ public sealed class Customer
 
     public string? Memo { get; set; }
 
+    public bool IsFavorite { get; set; }
+
+    public string? DiscardReason { get; set; }
+
     public string? ContractType { get; set; }
 
     public string? FormVehicleBrand { get; set; }

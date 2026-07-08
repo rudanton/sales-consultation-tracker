@@ -25,6 +25,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _customerVehicleNameInput;
     private string? _customerMemoInput;
     private CustomerStatusOption? _selectedCustomerStatus;
+    private bool _showDiscardedCustomers;
 
     public MainWindowViewModel()
     {
@@ -72,6 +73,24 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand SaveCustomerCommand { get; }
 
+    public bool ShowDiscardedCustomers
+    {
+        get => _showDiscardedCustomers;
+        set
+        {
+            if (SetProperty(ref _showDiscardedCustomers, value))
+            {
+                OnPropertyChanged(nameof(CustomerListTitle));
+                OnPropertyChanged(nameof(IsSelectedCustomerDiscarded));
+                RefreshCustomers();
+            }
+        }
+    }
+
+    public string CustomerListTitle => ShowDiscardedCustomers ? "폐기 목록" : "고객 목록";
+
+    public bool IsSelectedCustomerDiscarded => SelectedCustomer?.Status == CustomerStatus.Discarded;
+
     public string? SearchText
     {
         get => _searchText;
@@ -118,6 +137,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 SelectedFile = value?.Files.FirstOrDefault();
                 LoadCustomerEditor(value);
                 OnPropertyChanged(nameof(SearchSummary));
+                OnPropertyChanged(nameof(IsSelectedCustomerDiscarded));
             }
         }
     }
@@ -229,7 +249,11 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         var selectedId = preferredSelectedCustomerId ?? SelectedCustomer?.Id;
-        var query = _allCustomers.Where(MatchesSearch);
+        var query = _allCustomers
+            .Where(customer => ShowDiscardedCustomers
+                ? customer.Status == CustomerStatus.Discarded
+                : customer.Status != CustomerStatus.Discarded)
+            .Where(MatchesSearch);
 
         query = SelectedSortOption switch
         {
@@ -242,6 +266,8 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             query = query.Reverse();
         }
+
+        query = query.OrderByDescending(customer => customer.IsFavorite);
 
         Customers.Clear();
         foreach (var customer in query)
@@ -415,13 +441,15 @@ public sealed class MainWindowViewModel : ObservableObject
         _vehicleOptions.AddRange(
             dbContext.Vehicles
                 .Where(vehicle => vehicle.IsActive)
-                .OrderBy(vehicle => vehicle.Brand)
-                .ThenBy(vehicle => vehicle.Name)
-                .Select(vehicle => new VehicleOption(vehicle.Brand ?? "미지정", vehicle.Name, vehicle.FuelTypes))
+                .Select(vehicle => new VehicleOption(vehicle.Brand ?? "미지정", vehicle.Name, vehicle.FuelTypes, vehicle.Memo))
                 .ToList());
 
         VehicleBrands.Clear();
-        foreach (var brand in _vehicleOptions.Select(vehicle => vehicle.Brand).Distinct())
+        foreach (var brand in _vehicleOptions
+            .Select(vehicle => vehicle.Brand)
+            .Distinct()
+            .OrderBy(GetBrandOrder)
+            .ThenBy(brand => brand))
         {
             VehicleBrands.Add(brand);
         }
@@ -434,7 +462,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         SelectedVehicleBrand = previousBrand is not null && VehicleBrands.Contains(previousBrand)
             ? previousBrand
-            : VehicleBrands.Contains("기아") ? "기아" : VehicleBrands.FirstOrDefault();
+            : null;
 
         RefreshVehicleNames(previousName);
         RefreshFuelTypes(previousFuelType);
@@ -446,9 +474,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
         foreach (var name in _vehicleOptions
             .Where(vehicle => vehicle.Brand == SelectedVehicleBrand)
-            .Select(vehicle => vehicle.Name)
-            .Distinct()
-            .OrderBy(name => name))
+            .GroupBy(vehicle => vehicle.Name)
+            .Select(group => group.First())
+            .OrderBy(GetVehicleClassOrder)
+            .ThenBy(vehicle => vehicle.Name)
+            .Select(vehicle => vehicle.Name))
         {
             VehicleNames.Add(name);
         }
@@ -457,9 +487,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ? preferredVehicleName
             : SelectedVehicleName is not null && VehicleNames.Contains(SelectedVehicleName)
                 ? SelectedVehicleName
-                : SelectedVehicleBrand == "기아" && VehicleNames.Contains("K5")
-                    ? "K5"
-                    : VehicleNames.FirstOrDefault();
+                : null;
 
         SelectedVehicleName = nextVehicleName;
     }
@@ -506,6 +534,8 @@ public sealed class MainWindowViewModel : ObservableObject
             StatusText = FormatStatus(customer.Status, customer.StatusChangedAt, customer.LastContactAttemptAt),
             RecentText = FormatRecent(customer.LastConsultedAt ?? latestLog?.CreatedAt),
             MemoPreview = EmptyToDash(customer.Memo),
+            IsFavorite = customer.IsFavorite,
+            DiscardReason = customer.DiscardReason,
             ConditionSummary = vehicleName,
             SimilarEstimateSummary = latestEstimate is null
                 ? "참고 견적 없음"
@@ -536,6 +566,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 FileName = customerFile.DisplayName,
                 FilePath = customerFile.FilePath,
                 FileType = GetDisplayFileType(customerFile),
+                FileOrder = customerFile.FileOrder,
                 Summary = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
                 PreviewTitle = customerFile.DisplayName,
                 PreviewMeta = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
@@ -675,7 +706,83 @@ public sealed class MainWindowViewModel : ObservableObject
                 .Where(fuelType => !string.IsNullOrWhiteSpace(fuelType));
     }
 
-    private sealed record VehicleOption(string Brand, string Name, string? FuelTypes);
+    private static int GetBrandOrder(string brand)
+    {
+        return brand switch
+        {
+            "현대" => 0,
+            "기아" => 1,
+            "제네시스" => 2,
+            "KGM" or "kgm" => 3,
+            "르노" => 4,
+            "쉐보레" => 5,
+            "테슬라" => 6,
+            _ => 100,
+        };
+    }
+
+    private static int GetVehicleClassOrder(VehicleOption vehicle)
+    {
+        var memo = vehicle.Memo ?? string.Empty;
+        if (memo.Contains("경차", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (memo.Contains("소형SUV", StringComparison.OrdinalIgnoreCase))
+        {
+            return 20;
+        }
+
+        if (memo.Contains("준중형SUV", StringComparison.OrdinalIgnoreCase))
+        {
+            return 21;
+        }
+
+        if (memo.Contains("중형SUV", StringComparison.OrdinalIgnoreCase))
+        {
+            return 22;
+        }
+
+        if (memo.Contains("대형SUV", StringComparison.OrdinalIgnoreCase))
+        {
+            return 23;
+        }
+
+        if (memo.Contains("소형", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        if (memo.Contains("준중형", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (memo.Contains("중형", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (memo.Contains("준대형", StringComparison.OrdinalIgnoreCase))
+        {
+            return 4;
+        }
+
+        if (memo.Contains("대형", StringComparison.OrdinalIgnoreCase))
+        {
+            return 5;
+        }
+
+        if (memo.Contains("RV", StringComparison.OrdinalIgnoreCase) || memo.Contains("MPV", StringComparison.OrdinalIgnoreCase))
+        {
+            return 30;
+        }
+
+        return 90;
+    }
+
+    private sealed record VehicleOption(string Brand, string Name, string? FuelTypes, string? Memo);
 
     public sealed record CustomerStatusOption(CustomerStatus Status, string DisplayName)
     {

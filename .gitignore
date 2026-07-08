@@ -4,6 +4,7 @@
 out/
 publish/
 artifacts/
+dist/
 
 # Visual Studio / Rider / VS Code
 .vs/

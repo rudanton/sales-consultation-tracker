@@ -1,0 +1,14 @@
+SalesConsultationTracker 사용법
+
+1. SalesConsultationTracker.exe를 실행합니다.
+2. 고객 추가 버튼으로 고객 이름과 연락처를 등록합니다.
+3. 상담 조건 양식과 상담 기록을 입력한 뒤 저장 버튼을 누릅니다.
+4. 파일 영역의 추가 버튼으로 견적, 면허증, 사업자등록증 등 고객 파일을 첨부합니다.
+5. 같은 차량 견적 버튼은 선택한 차량명으로 기존 상담/견적 파일을 검색합니다.
+
+백업
+- 실행 폴더의 consultnote.db 파일과 storage 폴더를 함께 보관하면 됩니다.
+- 다른 PC로 옮길 때도 consultnote.db와 storage 폴더를 같은 실행 폴더에 두면 됩니다.
+
+배포 참고
+- self-contained 배포본은 .NET이 설치되지 않은 PC에서도 실행할 수 있습니다.

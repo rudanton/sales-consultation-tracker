@@ -201,6 +201,11 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (!TrySaveBasicInfoToCustomer(customer))
+            {
+                return;
+            }
+
             SaveConditionFormToCustomer(customer, mileage);
 
             if (!string.IsNullOrWhiteSpace(content))
@@ -255,6 +260,113 @@ public partial class MainWindow : Window
         viewModel.SearchText = searchText;
     }
 
+    private void FavoriteToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var dbContext = new AppDbContext();
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is null)
+            {
+                return;
+            }
+
+            customer.IsFavorite = FavoriteToggleButton.IsChecked == true;
+            customer.UpdatedAt = DateTime.Now;
+            dbContext.SaveChanges();
+            GetViewModel()?.ReloadCustomers(customer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
+    private void DiscardCustomerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            return;
+        }
+
+        var dialog = new DiscardCustomerDialog
+        {
+            Owner = this,
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var now = DateTime.Now;
+            using var dbContext = new AppDbContext();
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is null)
+            {
+                return;
+            }
+
+            customer.Status = CustomerStatus.Discarded;
+            customer.StatusChangedAt = now;
+            customer.LastContactAttemptAt = now;
+            customer.DiscardReason = dialog.Reason;
+            customer.UpdatedAt = now;
+            dbContext.SaveChanges();
+            GetViewModel()?.ReloadCustomers(customer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
+    private void RestoreCustomerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var now = DateTime.Now;
+            using var dbContext = new AppDbContext();
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is null)
+            {
+                return;
+            }
+
+            customer.Status = CustomerStatus.Consulting;
+            customer.StatusChangedAt = now;
+            customer.DiscardReason = null;
+            customer.UpdatedAt = now;
+            dbContext.SaveChanges();
+
+            var viewModel = GetViewModel();
+            if (viewModel is not null)
+            {
+                viewModel.ShowDiscardedCustomers = false;
+                viewModel.ReloadCustomers(customer.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
     private void MainWindowViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedCustomer))
@@ -278,7 +390,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new AddCustomerFileDialog(GetOwnerType())
+        var dialog = new AddCustomerFileDialog(GetOwnerType(), GetNextFileOrdersByType(selectedCustomer))
         {
             Owner = this,
         };
@@ -338,12 +450,27 @@ public partial class MainWindow : Window
 
     private void FileListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        EditSelectedFileMetadata();
+    }
+
+    private void SelectedFilePreview_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ClickCount < 2)
+        {
+            return;
+        }
+
         var selectedFile = GetViewModel()?.SelectedFile;
         if (selectedFile is null)
         {
             return;
         }
 
+        OpenFile(selectedFile);
+    }
+
+    private void OpenFile(FileItemViewModel selectedFile)
+    {
         if (!File.Exists(selectedFile.FilePath))
         {
             MessageBox.Show($"파일 경로가 존재하지 않습니다.\n\n{selectedFile.FilePath}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -360,6 +487,61 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"파일을 열 수 없습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditSelectedFileMetadata()
+    {
+        var viewModel = GetViewModel();
+        var selectedCustomer = GetSelectedCustomer();
+        var selectedFile = viewModel?.SelectedFile;
+        if (selectedCustomer is null || selectedFile is null)
+        {
+            return;
+        }
+
+        using var dbContext = new AppDbContext();
+        var customerFile = dbContext.CustomerFiles.FirstOrDefault(file => file.Id == selectedFile.Id);
+        if (customerFile is null)
+        {
+            return;
+        }
+
+        var dialog = new AddCustomerFileDialog(
+            GetOwnerType(),
+            GetNextFileOrdersByType(selectedCustomer),
+            customerFile.FileType,
+            customerFile.CustomFileType,
+            customerFile.FileOrder,
+            customerFile.Memo,
+            isEditMode: true)
+        {
+            Owner = this,
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        customerFile.FileType = dialog.FileType;
+        customerFile.CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null;
+        customerFile.FileOrder = dialog.FileOrder;
+        customerFile.Memo = dialog.Memo;
+        customerFile.DisplayName = BuildCustomerFileDisplayName(
+            selectedCustomer.Name,
+            dialog.FileType,
+            dialog.CustomFileType,
+            dialog.FileOrder);
+
+        try
+        {
+            dbContext.SaveChanges();
+            viewModel?.ReloadCustomers(selectedCustomer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
         }
     }
 
@@ -629,6 +811,15 @@ public partial class MainWindow : Window
             : fileType.Trim();
 
         return $"{customerName.Trim()}_{displayFileType}_{fileOrder}";
+    }
+
+    private static Dictionary<string, int> GetNextFileOrdersByType(CustomerItemViewModel customer)
+    {
+        return customer.Files
+            .GroupBy(file => file.FileType)
+            .ToDictionary(
+                group => group.Key,
+                group => Math.Max(1, group.Max(file => file.FileOrder) + 1));
     }
 
     private string GetLatestConsultationContent()

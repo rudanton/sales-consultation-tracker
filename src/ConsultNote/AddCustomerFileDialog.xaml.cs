@@ -56,13 +56,41 @@ public partial class AddCustomerFileDialog : Window
     };
 
     private readonly string[] _fileTypes;
+    private readonly IReadOnlyDictionary<string, int> _nextOrdersByFileType;
+    private readonly bool _isEditMode;
 
-    public AddCustomerFileDialog(string? customerType = null)
+    public AddCustomerFileDialog(
+        string? customerType = null,
+        IReadOnlyDictionary<string, int>? nextOrdersByFileType = null,
+        string? fileType = null,
+        string? customFileType = null,
+        int? fileOrder = null,
+        string? memo = null,
+        bool isEditMode = false)
     {
         InitializeComponent();
+        _isEditMode = isEditMode;
+        _nextOrdersByFileType = nextOrdersByFileType ?? new Dictionary<string, int>();
         _fileTypes = GetFileTypes(customerType);
         FileTypeComboBox.ItemsSource = _fileTypes;
-        FileTypeComboBox.SelectedIndex = 0;
+        FileTypeComboBox.SelectedItem = fileType is not null && _fileTypes.Contains(fileType) ? fileType : null;
+        FileTypeComboBox.Text = fileType ?? _fileTypes[0];
+        CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
+        MemoTextBox.Text = memo ?? string.Empty;
+        UpdateFileOrder();
+        if (fileOrder is not null)
+        {
+            FileOrderTextBox.Text = fileOrder.Value.ToString();
+        }
+
+        if (_isEditMode)
+        {
+            TitleTextBlock.Text = "파일 정보 수정";
+            FileLabelTextBlock.Visibility = Visibility.Collapsed;
+            FilePickerPanel.Visibility = Visibility.Collapsed;
+        }
+
+        UpdateMemoVisibility();
     }
 
     public string SourceFilePath => FilePathTextBox.Text.Trim();
@@ -96,18 +124,20 @@ public partial class AddCustomerFileDialog : Window
     private void FileTypeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         CustomFileTypePanel.Visibility = FileType == "기타" ? Visibility.Visible : Visibility.Collapsed;
+        UpdateFileOrder();
+        UpdateMemoVisibility();
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(SourceFilePath) || !File.Exists(SourceFilePath))
+        if (!_isEditMode && (string.IsNullOrWhiteSpace(SourceFilePath) || !File.Exists(SourceFilePath)))
         {
             MessageBox.Show("추가할 파일을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var extension = Path.GetExtension(SourceFilePath);
-        if (!SupportedExtensions.Contains(extension))
+        if (!_isEditMode && !SupportedExtensions.Contains(extension))
         {
             MessageBox.Show(".jpg, .jpeg, .png, .pdf 파일만 추가할 수 있습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -141,6 +171,22 @@ public partial class AddCustomerFileDialog : Window
         return typedFileTypes is null
             ? FallbackFileTypes
             : [.. CommonFileTypes, .. typedFileTypes, "기타"];
+    }
+
+    private void UpdateFileOrder()
+    {
+        FileOrderTextBox.Text = _nextOrdersByFileType.TryGetValue(FileType, out var nextOrder)
+            ? nextOrder.ToString()
+            : "1";
+    }
+
+    private void UpdateMemoVisibility()
+    {
+        MemoPanel.Visibility = FileType is "견적" or "기타" ? Visibility.Visible : Visibility.Collapsed;
+        if (MemoPanel.Visibility != Visibility.Visible)
+        {
+            MemoTextBox.Text = string.Empty;
+        }
     }
 
     private static string? TrimToNull(string? value)

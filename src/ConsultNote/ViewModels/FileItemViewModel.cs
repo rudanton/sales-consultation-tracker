@@ -10,6 +10,8 @@ public sealed class FileItemViewModel
 
     public required string FileType { get; init; }
 
+    public int FileOrder { get; init; }
+
     public required string Summary { get; init; }
 
     public required string PreviewTitle { get; init; }

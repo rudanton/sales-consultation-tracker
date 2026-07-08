@@ -39,6 +39,7 @@ public sealed class AppDbContext : DbContext
 
             entity.Property(customer => customer.CreatedAt).IsRequired();
             entity.Property(customer => customer.UpdatedAt).IsRequired();
+            entity.Property(customer => customer.IsFavorite).HasDefaultValue(false).IsRequired();
 
             entity
                 .HasMany(customer => customer.ConsultationLogs)
