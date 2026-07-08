@@ -87,9 +87,15 @@ GitHub Release를 사용할 경우:
 3. 생성된 zip을 Release asset으로 업로드한다.
 4. 사용자에게 Release zip 다운로드 링크를 전달한다.
 
+## 앱 내 업데이트 확인
+
+앱은 `업데이트 확인` 버튼으로 GitHub 최신 Release 버전을 확인할 수 있다.
+새 버전이 있으면 GitHub Release 페이지를 열어 사용자가 zip을 직접 내려받는다.
+현재 단계에서는 앱이 스스로 zip을 다운로드하거나 실행 파일을 교체하지 않는다.
+
 ## 향후 자동 업데이트 계획
 
-자동 업데이트는 P3 후순위 기능으로 둔다.
+실행 파일 자동 교체까지 포함하는 자동 업데이트는 P3 후순위 기능으로 둔다.
 후보 방식은 GitHub Release와 AutoUpdater.NET 조합이다.
 
 검토할 항목:
@@ -107,4 +113,5 @@ GitHub Release를 사용할 경우:
 - self-contained publish 스크립트
 - zip 생성 자동화
 - 앱 화면 버전 표시
+- 앱 내 GitHub Release 최신 버전 확인 버튼
 - 사용자 데이터와 앱 파일 분리 원칙 문서화

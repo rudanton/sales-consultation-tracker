@@ -53,6 +53,14 @@ public partial class MainWindow : Window
             : $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 
+    private static Version GetCurrentAppVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        return version is null
+            ? new Version(0, 0, 0)
+            : new Version(version.Major, version.Minor, version.Build);
+    }
+
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         WindowPlacementStore.Apply(this);
@@ -136,6 +144,43 @@ public partial class MainWindow : Window
 
         dialog.ShowDialog();
         GetViewModel()?.LoadVehicleOptions();
+    }
+
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var currentVersion = GetCurrentAppVersion();
+            var result = await new GitHubReleaseUpdateChecker().CheckLatestRelease(currentVersion);
+            if (!result.IsSuccess)
+            {
+                MessageBox.Show(result.Message, "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!result.HasUpdate)
+            {
+                MessageBox.Show($"현재 최신 버전입니다.\n\n현재 버전: v{currentVersion}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var openRelease = MessageBox.Show(
+                $"새 버전이 있습니다.\n\n현재 버전: v{currentVersion}\n최신 버전: v{result.LatestVersion}\n\nGitHub Release 페이지를 열까요?",
+                "Consult Note",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+            if (openRelease == MessageBoxResult.Yes && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+            {
+                Process.Start(new ProcessStartInfo(result.ReleaseUrl)
+                {
+                    UseShellExecute = true,
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"업데이트 확인 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void CopyCustomerPhoneButton_Click(object sender, RoutedEventArgs e)
