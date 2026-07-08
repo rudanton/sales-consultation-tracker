@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using Microsoft.Win32;
 
 namespace ConsultNote;
@@ -69,6 +70,7 @@ public partial class AddCustomerFileDialog : Window
         bool isEditMode = false)
     {
         InitializeComponent();
+        PreviewKeyDown += AddCustomerFileDialog_PreviewKeyDown;
         _isEditMode = isEditMode;
         _nextOrdersByFileType = nextOrdersByFileType ?? new Dictionary<string, int>();
         _fileTypes = GetFileTypes(customerType);
@@ -156,6 +158,17 @@ public partial class AddCustomerFileDialog : Window
         }
 
         DialogResult = true;
+    }
+
+    private void AddCustomerFileDialog_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        SaveButton_Click(this, new RoutedEventArgs());
     }
 
     private static string[] GetFileTypes(string? customerType)

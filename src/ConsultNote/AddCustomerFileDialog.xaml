@@ -83,9 +83,11 @@
                     <TextBox x:Name="CustomFileTypeTextBox" Padding="8,5" Margin="0,5,0,0" />
                 </StackPanel>
 
-                <TextBlock Text="파일 순서" Style="{StaticResource MutedText}" />
+                <TextBlock Text="파일 순서(자동)" Style="{StaticResource MutedText}" />
                 <TextBox x:Name="FileOrderTextBox"
                          Text="1"
+                         IsReadOnly="True"
+                         Focusable="False"
                          Padding="8,5"
                          Margin="0,5,0,10" />
 

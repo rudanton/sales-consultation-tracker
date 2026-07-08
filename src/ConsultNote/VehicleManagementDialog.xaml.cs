@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ConsultNote.Data;
 using ConsultNote.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public partial class VehicleManagementDialog : Window
     {
         InitializeComponent();
         DataContext = this;
+        PreviewKeyDown += VehicleManagementDialog_PreviewKeyDown;
         LoadVehicles();
     }
 
@@ -104,6 +106,17 @@ public partial class VehicleManagementDialog : Window
         {
             ShowDatabaseSaveError(ex);
         }
+    }
+
+    private void VehicleManagementDialog_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        SaveButton_Click(this, new RoutedEventArgs());
     }
 
     private void ToggleActiveButton_Click(object sender, RoutedEventArgs e)

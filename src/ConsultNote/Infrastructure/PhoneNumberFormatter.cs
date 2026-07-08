@@ -42,12 +42,22 @@ public static class PhoneNumberFormatter
     {
         var formattedPhoneNumber = Format(phoneNumber);
         var normalizedPhoneNumber = Normalize(phoneNumber);
-        var normalizedKeyword = Normalize(keyword);
 
         return formattedPhoneNumber.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-            || (!string.IsNullOrWhiteSpace(normalizedPhoneNumber)
+            || (IsPhoneSearchKeyword(keyword)
+                && !string.IsNullOrWhiteSpace(normalizedPhoneNumber)
+                && Normalize(keyword) is { Length: > 0 } normalizedKeyword
                 && !string.IsNullOrWhiteSpace(normalizedKeyword)
                 && normalizedPhoneNumber.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsPhoneSearchKeyword(string keyword)
+    {
+        return keyword.Any(char.IsDigit)
+            && keyword.All(character =>
+                char.IsDigit(character) ||
+                char.IsWhiteSpace(character) ||
+                character is '-' or '.' or '(' or ')' or '+');
     }
 
     private static string GetDigits(string? value)

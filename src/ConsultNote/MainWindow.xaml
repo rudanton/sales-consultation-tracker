@@ -167,10 +167,18 @@
                                    Text="{Binding RecentText}"
                                    Style="{StaticResource MutedText}" />
                     </Grid>
-                    <TextBlock Text="{Binding ContactDetail}" Margin="0,5,0,0" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding MemoPreview}"
+                    <TextBlock Margin="0,5,0,0" TextWrapping="Wrap">
+                        <Run Text="{Binding PhoneNumber}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding CustomerType}" />
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0"
                                Style="{StaticResource MutedText}"
-                               Margin="0,4,0,0" />
+                               TextWrapping="Wrap">
+                        <Run Text="{Binding VehicleSummary}" />
+                        <Run Text=" · " />
+                        <Run Text="{Binding MemoPreview}" />
+                    </TextBlock>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -181,13 +189,34 @@
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource MutedText}" />
-                        <TextBlock Text="{Binding StatusText}"
-                                   Style="{StaticResource MutedText}"
-                                   Margin="8,0,0,0" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Content}" Margin="0,5,0,0" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource MutedText}" />
+                            <TextBlock Text="{Binding StatusText}"
+                                       Style="{StaticResource MutedText}"
+                                       Margin="8,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="수정"
+                                    Tag="{Binding Id}"
+                                    MinHeight="23"
+                                    Padding="8,0"
+                                    Margin="0,0,6,0"
+                                    Click="EditConsultationLogButton_Click" />
+                            <Button Content="삭제"
+                                    Tag="{Binding Id}"
+                                    MinHeight="23"
+                                    Padding="8,0"
+                                    Click="DeleteConsultationLogButton_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="{Binding Content}"
+                               TextWrapping="Wrap"
+                               Margin="0,5,0,0" />
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -270,13 +299,10 @@
                 <ColumnDefinition Width="12" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="12" />
-                <ColumnDefinition x:Name="SidebarColumn" Width="360" />
+                <ColumnDefinition x:Name="SidebarColumn" Width="94" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource Panel}" Padding="14">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              CanContentScroll="False">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -284,8 +310,14 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
                             <ColumnDefinition Width="110" />
                             <ColumnDefinition Width="8" />
                             <ColumnDefinition Width="86" />
@@ -296,11 +328,17 @@
                                       IsChecked="{Binding ShowDiscardedCustomers}"
                                       Margin="0,-4,0,0" />
                         </StackPanel>
-                        <ComboBox Grid.Column="1"
+                        <ComboBox Grid.Column="2"
+                                  Style="{StaticResource CustomerSortComboBox}"
+                                  ItemsSource="{Binding CustomerStatusFilterOptions}"
+                                  SelectedItem="{Binding SelectedCustomerStatusFilter}" />
+                        <ComboBox Grid.Row="2"
+                                  Grid.Column="2"
                                   Style="{StaticResource CustomerSortComboBox}"
                                   ItemsSource="{Binding SortOptions}"
                                   SelectedItem="{Binding SelectedSortOption}" />
-                        <ComboBox Grid.Column="3"
+                        <ComboBox Grid.Row="2"
+                                  Grid.Column="4"
                                   Style="{StaticResource CustomerSortComboBox}"
                                   ItemsSource="{Binding SortDirections}"
                                   SelectedItem="{Binding SelectedSortDirection}" />
@@ -312,9 +350,10 @@
                              ItemTemplate="{StaticResource CustomerTemplate}"
                              BorderThickness="0"
                              Background="Transparent"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ItemContainerStyle="{StaticResource CustomerItem}" />
                 </Grid>
-                </ScrollViewer>
             </Border>
 
             <Border Grid.Column="2" Style="{StaticResource Panel}" Padding="18">
@@ -389,7 +428,8 @@
                         </StackPanel>
                     </Grid>
 
-                    <Border Grid.Row="1"
+                    <Border x:Name="BasicInfoPanel"
+                            Grid.Row="1"
                             Background="#F8FAFC"
                             BorderBrush="#E2E8F0"
                             BorderThickness="1"
@@ -435,7 +475,8 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0"
+                        <Border x:Name="ConditionFormPanel"
+                                Grid.Column="0"
                                 Background="#FBFCFE"
                                 BorderBrush="#E2E8F0"
                                 BorderThickness="1"
@@ -449,7 +490,8 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Text="상담 조건 양식" FontWeight="SemiBold" Margin="0,0,0,6" />
 
-                                <ScrollViewer Grid.Row="1"
+                                <ScrollViewer x:Name="ConditionFormScrollViewer"
+                                              Grid.Row="1"
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled"
                                               CanContentScroll="False"
@@ -728,7 +770,8 @@
                                                       Height="28"
                                                       Margin="0,5,0,0" />
                                         </StackPanel>
-                                        <Button Grid.Column="2"
+                                        <Button x:Name="ConsultationLogSaveButton"
+                                                Grid.Column="2"
                                                 Content="저장"
                                                 Style="{StaticResource PrimaryButton}"
                                                 Height="27"
@@ -742,6 +785,7 @@
                                              MinHeight="72"
                                              TextWrapping="Wrap"
                                              AcceptsReturn="True"
+                                             HorizontalScrollBarVisibility="Disabled"
                                              VerticalScrollBarVisibility="Auto"
                                              Padding="8,6" />
                                 </StackPanel>
@@ -767,7 +811,8 @@
             <Grid Grid.Column="4">
                 <Border x:Name="SidebarPanel"
                         Style="{StaticResource Panel}"
-                        Padding="14">
+                        Padding="14"
+                        Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   CanContentScroll="False">
@@ -785,6 +830,10 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="8" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="파일" Style="{StaticResource SectionTitle}" />
@@ -797,8 +846,24 @@
                                     Padding="9,0"
                                     VerticalAlignment="Top"
                                     Click="AddCustomerFileButton_Click" />
+                            <Button Grid.Column="3"
+                                    Content="삭제"
+                                    Style="{StaticResource ToolbarButton}"
+                                    Height="28"
+                                    MinHeight="28"
+                                    Padding="9,0"
+                                    VerticalAlignment="Top"
+                                    Click="DeleteCustomerFileButton_Click" />
+                            <Button Grid.Column="5"
+                                    Content="폴더"
+                                    Style="{StaticResource ToolbarButton}"
+                                    Height="28"
+                                    MinHeight="28"
+                                    Padding="9,0"
+                                    VerticalAlignment="Top"
+                                    Click="OpenCustomerFilesFolderButton_Click" />
                             <Button x:Name="SidebarToggleButton"
-                                    Grid.Column="3"
+                                    Grid.Column="7"
                                     Content="사이드바 접기"
                                     ToolTip="파일 사이드바 접기"
                                     Style="{StaticResource ToolbarButton}"
@@ -850,10 +915,26 @@
                         <Grid Grid.Row="3">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <TextBlock Text="파일 목록" Style="{StaticResource SectionTitle}" />
-                            <ListBox Grid.Row="1"
+                            <Grid Grid.Row="1" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="FileTypeFilterComboBox"
+                                          Height="30"
+                                          SelectionChanged="FileListOption_SelectionChanged" />
+                                <ComboBox x:Name="FileSortComboBox"
+                                          Grid.Column="2"
+                                          Height="30"
+                                          SelectionChanged="FileListOption_SelectionChanged" />
+                            </Grid>
+                            <ListBox x:Name="FileListBox"
+                                     Grid.Row="2"
                                      ItemsSource="{Binding SelectedCustomer.Files}"
                                      SelectedItem="{Binding SelectedFile}"
                                      ItemTemplate="{StaticResource FileTemplate}"
@@ -869,7 +950,7 @@
                 <Border x:Name="SidebarCollapsedPanel"
                         Style="{StaticResource Panel}"
                         Padding="10"
-                        Visibility="Collapsed">
+                        Visibility="Visible">
                     <Button x:Name="SidebarCollapsedToggleButton"
                             Content="파일 ›"
                             ToolTip="파일 열기"

@@ -10,18 +10,24 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace ConsultNote;
 
 public partial class MainWindow : Window
 {
+    private const string AllFileTypesFilter = "전체";
     private const string MileagePlaceholder = "0.0~5.0";
     private const string VehicleDetailPlaceholder = "상세 옵션";
     private const string DeliveryRegionDetailPlaceholder = "상세 지역";
     private readonly GridLength _openSidebarWidth = new(360);
     private readonly GridLength _closedSidebarWidth = new(94);
-    private bool _isSidebarOpen = true;
+    private int? _currentSelectedCustomerId;
+    private int? _editingConsultationLogId;
+    private bool _isSidebarOpen;
 
     public MainWindow()
     {
@@ -29,13 +35,18 @@ public partial class MainWindow : Window
         var viewModel = new MainWindowViewModel();
         viewModel.PropertyChanged += MainWindowViewModel_PropertyChanged;
         DataContext = viewModel;
+        ApplySidebarState();
+        EnsureFileListOptions();
         UpdateMileageCustomInput();
-        LoadSelectedCustomerConditionForm();
+        PreviewKeyDown += MainWindow_PreviewKeyDown;
         Loaded += MainWindow_Loaded;
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        _currentSelectedCustomerId = GetSelectedCustomer()?.Id;
+        Dispatcher.BeginInvoke(() => RefreshSelectedCustomerUi(scrollConditionToTop: true), DispatcherPriority.ContextIdle);
+
         WindowState = WindowState.Normal;
         Show();
         Activate();
@@ -45,10 +56,26 @@ public partial class MainWindow : Window
         Topmost = false;
     }
 
+    private void RefreshSelectedCustomerUi(bool scrollConditionToTop = false)
+    {
+        LoadSelectedCustomerConditionForm();
+        if (scrollConditionToTop)
+        {
+            ConditionFormScrollViewer.ScrollToTop();
+        }
+
+        RefreshFileListControls();
+        UpdateSelectedFilePreview();
+    }
+
     private void SidebarToggleButton_Click(object sender, RoutedEventArgs e)
     {
         _isSidebarOpen = !_isSidebarOpen;
+        ApplySidebarState();
+    }
 
+    private void ApplySidebarState()
+    {
         SidebarColumn.Width = _isSidebarOpen ? _openSidebarWidth : _closedSidebarWidth;
         SidebarPanel.Visibility = _isSidebarOpen ? Visibility.Visible : Visibility.Collapsed;
         SidebarCollapsedPanel.Visibility = _isSidebarOpen ? Visibility.Collapsed : Visibility.Visible;
@@ -100,6 +127,27 @@ public partial class MainWindow : Window
         if (viewModel is not null)
         {
             viewModel.SearchText = string.Empty;
+        }
+    }
+
+    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        if (ConsultationContentTextBox.IsKeyboardFocusWithin)
+        {
+            e.Handled = true;
+            ConsultationLogSaveButton_Click(ConsultationLogSaveButton, new RoutedEventArgs());
+            return;
+        }
+
+        if (BasicInfoPanel.IsKeyboardFocusWithin || ConditionFormPanel.IsKeyboardFocusWithin)
+        {
+            e.Handled = true;
+            ConditionFormSaveButton_Click(this, new RoutedEventArgs());
         }
     }
 
@@ -208,7 +256,28 @@ public partial class MainWindow : Window
 
             SaveConditionFormToCustomer(customer, mileage);
 
-            if (!string.IsNullOrWhiteSpace(content))
+            if (_editingConsultationLogId is not null)
+            {
+                var log = dbContext.ConsultationLogs.FirstOrDefault(item =>
+                    item.Id == _editingConsultationLogId.Value &&
+                    item.CustomerId == customer.Id);
+                if (log is null)
+                {
+                    MessageBox.Show("수정할 상담 기록을 찾을 수 없습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ClearConsultationLogEditMode();
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    MessageBox.Show("수정할 상담 내용을 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                log.Content = content;
+                log.UpdatedAt = now;
+            }
+            else if (!string.IsNullOrWhiteSpace(content))
             {
                 dbContext.ConsultationLogs.Add(new ConsultationLog
                 {
@@ -232,13 +301,102 @@ public partial class MainWindow : Window
             customer.UpdatedAt = now;
 
             dbContext.SaveChanges();
-            ConsultationContentTextBox.Text = string.Empty;
+            ClearConsultationLogEditMode();
             viewModel?.ReloadCustomers(customer.Id);
         }
         catch (Exception ex)
         {
             ShowDatabaseSaveError(ex);
         }
+    }
+
+    private void EditConsultationLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: int logId })
+        {
+            return;
+        }
+
+        var selectedCustomer = GetSelectedCustomer();
+        var log = selectedCustomer?.ConsultationLogs.FirstOrDefault(item => item.Id == logId);
+        if (log is null)
+        {
+            return;
+        }
+
+        _editingConsultationLogId = logId;
+        ConsultationContentTextBox.Text = log.Content;
+        ConsultationContentTextBox.Focus();
+        ConsultationContentTextBox.CaretIndex = ConsultationContentTextBox.Text.Length;
+        ConsultationLogSaveButton.Content = "수정 저장";
+    }
+
+    private void DeleteConsultationLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: int logId })
+        {
+            return;
+        }
+
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            "상담 기록을 삭제할까요?",
+            "Consult Note",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            using var dbContext = new AppDbContext();
+            var log = dbContext.ConsultationLogs.FirstOrDefault(item =>
+                item.Id == logId &&
+                item.CustomerId == selectedCustomer.Id);
+            if (log is null)
+            {
+                return;
+            }
+
+            dbContext.ConsultationLogs.Remove(log);
+
+            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
+            if (customer is not null)
+            {
+                customer.LastConsultedAt = dbContext.ConsultationLogs
+                    .Where(item => item.CustomerId == selectedCustomer.Id && item.Id != logId)
+                    .OrderByDescending(item => item.CreatedAt)
+                    .Select(item => (DateTime?)item.CreatedAt)
+                    .FirstOrDefault();
+                customer.UpdatedAt = DateTime.Now;
+            }
+
+            dbContext.SaveChanges();
+            if (_editingConsultationLogId == logId)
+            {
+                ClearConsultationLogEditMode();
+            }
+
+            GetViewModel()?.ReloadCustomers(selectedCustomer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
+    private void ClearConsultationLogEditMode()
+    {
+        _editingConsultationLogId = null;
+        ConsultationContentTextBox.Text = string.Empty;
+        ConsultationLogSaveButton.Content = "저장";
     }
 
     private void SimilarConditionSearchButton_Click(object sender, RoutedEventArgs e)
@@ -371,9 +529,15 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedCustomer))
         {
-            LoadSelectedCustomerConditionForm();
-            ConsultationContentTextBox.Text = string.Empty;
-            UpdateSelectedFilePreview();
+            var selectedCustomerId = GetSelectedCustomer()?.Id;
+            var isDifferentCustomer = selectedCustomerId != _currentSelectedCustomerId;
+            _currentSelectedCustomerId = selectedCustomerId;
+
+            RefreshSelectedCustomerUi(scrollConditionToTop: isDifferentCustomer);
+            if (isDifferentCustomer)
+            {
+                ClearConsultationLogEditMode();
+            }
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.SelectedFile))
         {
@@ -401,17 +565,25 @@ public partial class MainWindow : Window
         }
 
         var now = DateTime.Now;
-        var customerFilesDirectory = Path.Combine(AppPaths.CustomersDirectory, selectedCustomer.Id.ToString(CultureInfo.InvariantCulture), "files");
+        var customerFilesDirectory = GetCustomerFilesDirectory(selectedCustomer.Id);
         var destinationPath = string.Empty;
         var storedFileName = string.Empty;
+        using var dbContext = new AppDbContext();
+        var fileOrder = GetNextFileOrderFromDatabase(dbContext, selectedCustomer.Id, dialog.FileType, dialog.CustomFileType);
+        var displayName = BuildCustomerFileDisplayName(selectedCustomer.Name, dialog.FileType, dialog.CustomFileType, fileOrder);
+        var storedBaseName = BuildCustomerStoredFileBaseName(
+            selectedCustomer.Name,
+            dialog.FileType,
+            dialog.CustomFileType,
+            fileOrder,
+            dialog.Memo);
 
         try
         {
             Directory.CreateDirectory(customerFilesDirectory);
 
             var extension = Path.GetExtension(dialog.SourceFilePath);
-            var unique = Guid.NewGuid().ToString("N")[..8];
-            storedFileName = $"{now:yyyyMMdd_HHmmss}_{unique}{extension}";
+            storedFileName = BuildStoredCustomerFileName(customerFilesDirectory, storedBaseName, extension);
             destinationPath = Path.Combine(customerFilesDirectory, storedFileName);
 
             File.Copy(dialog.SourceFilePath, destinationPath, overwrite: false);
@@ -424,17 +596,16 @@ public partial class MainWindow : Window
 
         try
         {
-            using var dbContext = new AppDbContext();
             dbContext.CustomerFiles.Add(new CustomerFile
             {
                 CustomerId = selectedCustomer.Id,
                 OriginalFileName = dialog.OriginalFileName,
                 StoredFileName = storedFileName,
-                DisplayName = BuildCustomerFileDisplayName(selectedCustomer.Name, dialog.FileType, dialog.CustomFileType, dialog.FileOrder),
+                DisplayName = displayName,
                 FilePath = destinationPath,
                 FileType = dialog.FileType,
                 CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null,
-                FileOrder = dialog.FileOrder,
+                FileOrder = fileOrder,
                 Memo = dialog.Memo,
                 CreatedAt = now,
             });
@@ -446,6 +617,83 @@ public partial class MainWindow : Window
         {
             ShowDatabaseSaveError(ex);
         }
+    }
+
+    private void DeleteCustomerFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var viewModel = GetViewModel();
+        var selectedCustomer = viewModel?.SelectedCustomer;
+        var selectedFile = viewModel?.SelectedFile;
+        if (viewModel is null || selectedCustomer is null || selectedFile is null)
+        {
+            MessageBox.Show("삭제할 파일을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var result = MessageBox.Show(
+            $"선택한 파일을 삭제할까요?\n\n{selectedFile.FileName}",
+            "Consult Note",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            using var dbContext = new AppDbContext();
+            var customerFile = dbContext.CustomerFiles.FirstOrDefault(file =>
+                file.Id == selectedFile.Id &&
+                file.CustomerId == selectedCustomer.Id);
+            if (customerFile is null)
+            {
+                return;
+            }
+
+            var filePath = customerFile.FilePath;
+            dbContext.CustomerFiles.Remove(customerFile);
+            dbContext.SaveChanges();
+
+            TryDeleteStoredCustomerFile(filePath);
+            viewModel.ReloadCustomers(selectedCustomer.Id);
+        }
+        catch (Exception ex)
+        {
+            ShowDatabaseSaveError(ex);
+        }
+    }
+
+    private void OpenCustomerFilesFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            MessageBox.Show("파일 폴더를 열 고객을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var customerFilesDirectory = GetCustomerFilesDirectory(selectedCustomer.Id);
+            Directory.CreateDirectory(customerFilesDirectory);
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = customerFilesDirectory,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"파일 폴더를 열 수 없습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void FileListOption_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ApplyFileListView();
+        SelectFirstVisibleFileIfNeeded();
     }
 
     private void FileListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -524,15 +772,21 @@ public partial class MainWindow : Window
             return;
         }
 
+        var originalDisplayFileType = GetDisplayFileType(customerFile.FileType, customerFile.CustomFileType);
+        var editedDisplayFileType = GetDisplayFileType(dialog.FileType, dialog.CustomFileType);
+        var fileOrder = string.Equals(originalDisplayFileType, editedDisplayFileType, StringComparison.CurrentCulture)
+            ? customerFile.FileOrder
+            : GetNextFileOrderFromDatabase(dbContext, selectedCustomer.Id, dialog.FileType, dialog.CustomFileType, customerFile.Id);
+
         customerFile.FileType = dialog.FileType;
         customerFile.CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null;
-        customerFile.FileOrder = dialog.FileOrder;
+        customerFile.FileOrder = fileOrder;
         customerFile.Memo = dialog.Memo;
         customerFile.DisplayName = BuildCustomerFileDisplayName(
             selectedCustomer.Name,
             dialog.FileType,
             dialog.CustomFileType,
-            dialog.FileOrder);
+            fileOrder);
 
         try
         {
@@ -755,6 +1009,116 @@ public partial class MainWindow : Window
         return GetViewModel()?.SelectedCustomer;
     }
 
+    private void EnsureFileListOptions()
+    {
+        FileTypeFilterComboBox.Items.Clear();
+        FileTypeFilterComboBox.Items.Add(AllFileTypesFilter);
+        FileTypeFilterComboBox.SelectedItem = AllFileTypesFilter;
+
+        FileSortComboBox.Items.Clear();
+        FileSortComboBox.Items.Add("유형/순서");
+        FileSortComboBox.Items.Add("최신순");
+        FileSortComboBox.Items.Add("파일명순");
+        FileSortComboBox.SelectedIndex = 0;
+    }
+
+    private void RefreshFileListControls()
+    {
+        RefreshFileTypeFilterOptions();
+        ApplyFileListView();
+        SelectFirstVisibleFileIfNeeded();
+    }
+
+    private void RefreshFileTypeFilterOptions()
+    {
+        var selectedFilter = FileTypeFilterComboBox.SelectedItem?.ToString();
+
+        FileTypeFilterComboBox.Items.Clear();
+        FileTypeFilterComboBox.Items.Add(AllFileTypesFilter);
+
+        var fileTypes = GetSelectedCustomer()?.Files
+            .Select(file => file.FileType)
+            .Where(fileType => !string.IsNullOrWhiteSpace(fileType))
+            .Distinct(StringComparer.CurrentCulture)
+            .OrderBy(fileType => fileType);
+
+        if (fileTypes is not null)
+        {
+            foreach (var fileType in fileTypes)
+            {
+                FileTypeFilterComboBox.Items.Add(fileType);
+            }
+        }
+
+        FileTypeFilterComboBox.SelectedItem = selectedFilter is not null && FileTypeFilterComboBox.Items.Contains(selectedFilter)
+            ? selectedFilter
+            : AllFileTypesFilter;
+    }
+
+    private void ApplyFileListView()
+    {
+        if (FileListBox.ItemsSource is null)
+        {
+            return;
+        }
+
+        var view = CollectionViewSource.GetDefaultView(FileListBox.ItemsSource);
+        if (view is null)
+        {
+            return;
+        }
+
+        var selectedFilter = FileTypeFilterComboBox.SelectedItem?.ToString();
+        view.Filter = item =>
+            selectedFilter is null ||
+            selectedFilter == AllFileTypesFilter ||
+            item is FileItemViewModel file && file.FileType == selectedFilter;
+
+        using (view.DeferRefresh())
+        {
+            view.SortDescriptions.Clear();
+
+            switch (FileSortComboBox.SelectedItem?.ToString())
+            {
+                case "최신순":
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.CreatedAt), ListSortDirection.Descending));
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.FileName), ListSortDirection.Ascending));
+                    break;
+                case "파일명순":
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.FileName), ListSortDirection.Ascending));
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.CreatedAt), ListSortDirection.Descending));
+                    break;
+                default:
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.FileType), ListSortDirection.Ascending));
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.FileOrder), ListSortDirection.Ascending));
+                    view.SortDescriptions.Add(new SortDescription(nameof(FileItemViewModel.CreatedAt), ListSortDirection.Descending));
+                    break;
+            }
+        }
+    }
+
+    private void SelectFirstVisibleFileIfNeeded()
+    {
+        var viewModel = GetViewModel();
+        if (viewModel is null || FileListBox.ItemsSource is null)
+        {
+            return;
+        }
+
+        var view = CollectionViewSource.GetDefaultView(FileListBox.ItemsSource);
+        if (view is null)
+        {
+            return;
+        }
+
+        if (viewModel.SelectedFile is not null && view.Contains(viewModel.SelectedFile))
+        {
+            return;
+        }
+
+        viewModel.SelectedFile = view.Cast<FileItemViewModel>().FirstOrDefault();
+    }
+
     private void UpdateSelectedFilePreview()
     {
         var selectedFile = GetViewModel()?.SelectedFile;
@@ -793,6 +1157,32 @@ public partial class MainWindow : Window
         return DataContext as MainWindowViewModel;
     }
 
+    private static string GetCustomerFilesDirectory(int customerId)
+    {
+        return Path.Combine(AppPaths.CustomersDirectory, customerId.ToString(CultureInfo.InvariantCulture), "files");
+    }
+
+    private void TryDeleteStoredCustomerFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(filePath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"파일 정보는 삭제했지만 실제 파일 삭제에 실패했습니다.\n\n{filePath}\n\n{ex.Message}",
+                "Consult Note",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     private string? GetSelectedVehicleNameForSearch()
     {
         return VehicleNameComboBox.SelectedItem switch
@@ -811,6 +1201,71 @@ public partial class MainWindow : Window
             : fileType.Trim();
 
         return $"{customerName.Trim()}_{displayFileType}_{fileOrder}";
+    }
+
+    private static string BuildCustomerStoredFileBaseName(
+        string customerName,
+        string fileType,
+        string? customFileType,
+        int fileOrder,
+        string? memo)
+    {
+        var baseName = BuildCustomerFileDisplayName(customerName, fileType, customFileType, fileOrder);
+        return IsEstimateFileType(fileType, customFileType) && !string.IsNullOrWhiteSpace(memo)
+            ? $"{baseName}_{memo.Trim()}"
+            : baseName;
+    }
+
+    private static string GetDisplayFileType(string fileType, string? customFileType)
+    {
+        return fileType == "기타" && !string.IsNullOrWhiteSpace(customFileType)
+            ? customFileType.Trim()
+            : fileType.Trim();
+    }
+
+    private static bool IsEstimateFileType(string fileType, string? customFileType)
+    {
+        return string.Equals(GetDisplayFileType(fileType, customFileType), "견적", StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private static int GetNextFileOrderFromDatabase(
+        AppDbContext dbContext,
+        int customerId,
+        string fileType,
+        string? customFileType,
+        int? excludingFileId = null)
+    {
+        var displayFileType = GetDisplayFileType(fileType, customFileType);
+        var maxOrder = dbContext.CustomerFiles
+            .Where(file => file.CustomerId == customerId)
+            .AsEnumerable()
+            .Where(file => excludingFileId is null || file.Id != excludingFileId.Value)
+            .Where(file => string.Equals(
+                GetDisplayFileType(file.FileType, file.CustomFileType),
+                displayFileType,
+                StringComparison.CurrentCulture))
+            .Select(file => (int?)file.FileOrder)
+            .Max();
+
+        return (maxOrder ?? 0) + 1;
+    }
+
+    private static string BuildStoredCustomerFileName(string directoryPath, string displayName, string extension)
+    {
+        var safeBaseName = SanitizeFileName(displayName);
+        var safeExtension = string.IsNullOrWhiteSpace(extension) ? string.Empty : extension.ToLowerInvariant();
+        var storedFileName = $"{safeBaseName}{safeExtension}";
+        var destinationPath = Path.Combine(directoryPath, storedFileName);
+        var suffix = 2;
+
+        while (File.Exists(destinationPath))
+        {
+            storedFileName = $"{safeBaseName}({suffix}){safeExtension}";
+            destinationPath = Path.Combine(directoryPath, storedFileName);
+            suffix++;
+        }
+
+        return storedFileName;
     }
 
     private static Dictionary<string, int> GetNextFileOrdersByType(CustomerItemViewModel customer)

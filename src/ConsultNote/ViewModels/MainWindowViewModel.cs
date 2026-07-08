@@ -25,6 +25,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string? _customerVehicleNameInput;
     private string? _customerMemoInput;
     private CustomerStatusOption? _selectedCustomerStatus;
+    private CustomerStatusFilterOption? _selectedCustomerStatusFilter;
     private bool _showDiscardedCustomers;
 
     public MainWindowViewModel()
@@ -44,8 +45,17 @@ public sealed class MainWindowViewModel : ObservableObject
         CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.LongNoAnswer, "장기부재"));
         CustomerStatusOptions.Add(new CustomerStatusOption(CustomerStatus.Discarded, "폐기"));
 
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(null, "전체"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.Consulting, "상담중"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.NoAnswer, "부재"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.Screening, "심사"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.ContractCompleted, "계약완료"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.Delivered, "인도완료"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.LongNoAnswer, "장기부재"));
+
         SelectedSortOption = SortOptions[0];
         SelectedSortDirection = SortDirections[1];
+        SelectedCustomerStatusFilter = CustomerStatusFilterOptions[0];
 
         SaveCustomerCommand = new RelayCommand(SaveSelectedCustomer);
 
@@ -70,6 +80,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public ObservableCollection<string> CustomerVehicleNames { get; } = [];
 
     public ObservableCollection<CustomerStatusOption> CustomerStatusOptions { get; } = [];
+
+    public ObservableCollection<CustomerStatusFilterOption> CustomerStatusFilterOptions { get; } = [];
 
     public ICommand SaveCustomerCommand { get; }
 
@@ -202,6 +214,18 @@ public sealed class MainWindowViewModel : ObservableObject
         set => SetProperty(ref _selectedCustomerStatus, value);
     }
 
+    public CustomerStatusFilterOption? SelectedCustomerStatusFilter
+    {
+        get => _selectedCustomerStatusFilter;
+        set
+        {
+            if (SetProperty(ref _selectedCustomerStatusFilter, value))
+            {
+                RefreshCustomers();
+            }
+        }
+    }
+
     public string? CustomerMemoInput
     {
         get => _customerMemoInput;
@@ -253,6 +277,9 @@ public sealed class MainWindowViewModel : ObservableObject
             .Where(customer => ShowDiscardedCustomers
                 ? customer.Status == CustomerStatus.Discarded
                 : customer.Status != CustomerStatus.Discarded)
+            .Where(customer => ShowDiscardedCustomers
+                || SelectedCustomerStatusFilter?.Status is null
+                || customer.Status == SelectedCustomerStatusFilter.Status)
             .Where(MatchesSearch);
 
         query = SelectedSortOption switch
@@ -549,6 +576,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             viewModel.ConsultationLogs.Add(new ConsultationLogItemViewModel
             {
+                Id = log.Id,
                 CreatedAtText = log.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
                 StatusText = FormatStatusName(customer.Status),
                 Content = log.Content,
@@ -785,6 +813,14 @@ public sealed class MainWindowViewModel : ObservableObject
     private sealed record VehicleOption(string Brand, string Name, string? FuelTypes, string? Memo);
 
     public sealed record CustomerStatusOption(CustomerStatus Status, string DisplayName)
+    {
+        public override string ToString()
+        {
+            return DisplayName;
+        }
+    }
+
+    public sealed record CustomerStatusFilterOption(CustomerStatus? Status, string DisplayName)
     {
         public override string ToString()
         {

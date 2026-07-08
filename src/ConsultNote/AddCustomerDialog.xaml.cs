@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ConsultNote.Infrastructure;
 
 namespace ConsultNote;
@@ -9,6 +10,7 @@ public partial class AddCustomerDialog : Window
     public AddCustomerDialog()
     {
         InitializeComponent();
+        PreviewKeyDown += AddCustomerDialog_PreviewKeyDown;
     }
 
     public string CustomerName => CustomerNameTextBox.Text.Trim();
@@ -28,6 +30,17 @@ public partial class AddCustomerDialog : Window
         }
 
         DialogResult = true;
+    }
+
+    private void AddCustomerDialog_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control || !SaveButton.IsEnabled)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        SaveButton_Click(SaveButton, new RoutedEventArgs());
     }
 
     private void CustomerPhoneTextBox_LostFocus(object sender, RoutedEventArgs e)

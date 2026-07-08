@@ -96,4 +96,6 @@ storage/
 .\scripts\publish.ps1
 ```
 
-생성된 zip 파일은 `dist/` 폴더에 저장된다.
+생성된 zip 파일은 `dist/` 폴더에 저장된다. 이 zip은 self-contained 배포본이므로 .NET이 설치되지 않은 Windows PC에서도 실행 테스트가 완료되었다.
+
+상담 양식 복사 기능은 클립보드 복사와 함께 `logs/exports/`에 UTF-8 txt 파일을 보조 저장한다. 회사 사이트로 옮겨 붙이는 용도이므로 PDF export보다 txt export를 우선한다.
