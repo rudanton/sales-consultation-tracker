@@ -384,6 +384,13 @@
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     VerticalAlignment="Top">
+                            <Button Content="연락처 복사"
+                                    Height="28"
+                                    MinHeight="28"
+                                    Padding="10,0"
+                                    Margin="0,0,8,0"
+                                    Style="{StaticResource ToolbarButton}"
+                                    Click="CopyCustomerPhoneButton_Click" />
                             <ToggleButton x:Name="FavoriteToggleButton"
                                           Content="★"
                                           ToolTip="즐겨찾기"

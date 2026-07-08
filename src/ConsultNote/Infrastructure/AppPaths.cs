@@ -15,4 +15,6 @@ public static class AppPaths
     public static string BackupDirectory { get; } = Path.Combine(AppRoot, "backup");
 
     public static string LogsDirectory { get; } = Path.Combine(AppRoot, "logs");
+
+    public static string SettingsDirectory { get; } = Path.Combine(AppRoot, "settings");
 }

@@ -18,6 +18,7 @@ public static class AppStartup
         Directory.CreateDirectory(AppPaths.CustomersDirectory);
         Directory.CreateDirectory(AppPaths.BackupDirectory);
         Directory.CreateDirectory(AppPaths.LogsDirectory);
+        Directory.CreateDirectory(AppPaths.SettingsDirectory);
     }
 
     private static void EnsureDatabase()

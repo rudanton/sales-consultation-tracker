@@ -40,20 +40,26 @@ public partial class MainWindow : Window
         UpdateMileageCustomInput();
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         Loaded += MainWindow_Loaded;
+        Closing += MainWindow_Closing;
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        WindowPlacementStore.Apply(this);
         _currentSelectedCustomerId = GetSelectedCustomer()?.Id;
         Dispatcher.BeginInvoke(() => RefreshSelectedCustomerUi(scrollConditionToTop: true), DispatcherPriority.ContextIdle);
 
-        WindowState = WindowState.Normal;
         Show();
         Activate();
         Focus();
 
         Topmost = true;
         Topmost = false;
+    }
+
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        WindowPlacementStore.Save(this);
     }
 
     private void RefreshSelectedCustomerUi(bool scrollConditionToTop = false)
@@ -119,6 +125,18 @@ public partial class MainWindow : Window
 
         dialog.ShowDialog();
         GetViewModel()?.LoadVehicleOptions();
+    }
+
+    private void CopyCustomerPhoneButton_Click(object sender, RoutedEventArgs e)
+    {
+        var phoneNumber = PhoneNumberFormatter.Format(GetSelectedCustomer()?.PhoneNumber ?? CustomerPhoneTextBox.Text);
+        if (string.IsNullOrWhiteSpace(phoneNumber) || phoneNumber == "-")
+        {
+            MessageBox.Show("복사할 연락처가 없습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        Clipboard.SetText(phoneNumber);
     }
 
     private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
