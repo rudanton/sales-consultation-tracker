@@ -249,9 +249,16 @@ public sealed class MainWindowViewModel : ObservableObject
             Customers.Add(customer);
         }
 
-        SelectedCustomer = Customers.FirstOrDefault(customer => customer.Id == selectedId)
-            ?? Customers.FirstOrDefault();
+        SelectedCustomer = GetCustomerToSelect(selectedId);
         OnPropertyChanged(nameof(SearchSummary));
+    }
+
+    private CustomerItemViewModel? GetCustomerToSelect(int? selectedId)
+    {
+        return selectedId is null
+            ? Customers.FirstOrDefault()
+            : Customers.FirstOrDefault(customer => customer.Id == selectedId)
+                ?? Customers.FirstOrDefault();
     }
 
     private void LoadCustomerEditor(CustomerItemViewModel? customer)
@@ -484,6 +491,8 @@ public sealed class MainWindowViewModel : ObservableObject
         var latestLog = customer.ConsultationLogs.OrderByDescending(log => log.CreatedAt).FirstOrDefault();
         var latestEstimate = customer.Estimates.OrderByDescending(estimate => estimate.CreatedAt).FirstOrDefault();
         var vehicleName = EmptyToDash(customer.VehicleName);
+        var customerType = EmptyToDash(customer.OwnerType);
+        var vehicleSummary = FormatVehicleSummary(customer.FormVehicleName ?? customer.VehicleName, customer.FormFuelType);
 
         var viewModel = new CustomerItemViewModel
         {
@@ -491,6 +500,8 @@ public sealed class MainWindowViewModel : ObservableObject
             Name = EmptyToDash(customer.Name),
             PhoneNumber = EmptyToDash(PhoneNumberFormatter.Format(customer.PhoneNumber)),
             VehicleName = vehicleName,
+            CustomerType = customerType,
+            VehicleSummary = vehicleSummary,
             Status = customer.Status,
             StatusText = FormatStatus(customer.Status, customer.StatusChangedAt, customer.LastContactAttemptAt),
             RecentText = FormatRecent(customer.LastConsultedAt ?? latestLog?.CreatedAt),
@@ -509,11 +520,15 @@ public sealed class MainWindowViewModel : ObservableObject
             viewModel.ConsultationLogs.Add(new ConsultationLogItemViewModel
             {
                 CreatedAtText = log.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                StatusText = FormatStatusName(customer.Status),
                 Content = log.Content,
             });
         }
 
-        foreach (var customerFile in customer.CustomerFiles.OrderByDescending(file => file.CreatedAt))
+        foreach (var customerFile in customer.CustomerFiles
+            .OrderBy(file => GetDisplayFileType(file))
+            .ThenBy(file => file.FileOrder)
+            .ThenByDescending(file => file.CreatedAt))
         {
             viewModel.Files.Add(new FileItemViewModel
             {
@@ -523,7 +538,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 FileType = GetDisplayFileType(customerFile),
                 Summary = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
                 PreviewTitle = customerFile.DisplayName,
-                PreviewMeta = $"{GetDisplayFileType(customerFile)} · {customerFile.OriginalFileName} · {customerFile.CreatedAt:yyyy-MM-dd}",
+                PreviewMeta = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
                 PreviewLabel = customerFile.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(customerFile),
                 CreatedAt = customerFile.CreatedAt,
             });
@@ -534,17 +549,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private static string FormatStatus(CustomerStatus status, DateTime? statusChangedAt, DateTime? lastContactAttemptAt)
     {
-        var statusText = status switch
-        {
-            CustomerStatus.Consulting => "상담중",
-            CustomerStatus.NoAnswer => "부재",
-            CustomerStatus.Screening => "심사",
-            CustomerStatus.ContractCompleted => "계약완료",
-            CustomerStatus.Delivered => "인도완료",
-            CustomerStatus.LongNoAnswer => "장기부재",
-            CustomerStatus.Discarded => "폐기",
-            _ => "상담중",
-        };
+        var statusText = FormatStatusName(status);
 
         if (status is not (CustomerStatus.NoAnswer or CustomerStatus.LongNoAnswer))
         {
@@ -559,6 +564,21 @@ public sealed class MainWindowViewModel : ObservableObject
 
         var elapsedDays = Math.Max(0, (DateTime.Today - baseline.Value.Date).Days);
         return $"{statusText} · {elapsedDays}일 경과";
+    }
+
+    private static string FormatStatusName(CustomerStatus status)
+    {
+        return status switch
+        {
+            CustomerStatus.Consulting => "상담중",
+            CustomerStatus.NoAnswer => "부재",
+            CustomerStatus.Screening => "심사",
+            CustomerStatus.ContractCompleted => "계약완료",
+            CustomerStatus.Delivered => "인도완료",
+            CustomerStatus.LongNoAnswer => "장기부재",
+            CustomerStatus.Discarded => "폐기",
+            _ => "상담중",
+        };
     }
 
     private static int GetStatusOrder(CustomerStatus status)
@@ -604,6 +624,14 @@ public sealed class MainWindowViewModel : ObservableObject
     private static string EmptyToDash(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static string FormatVehicleSummary(string? vehicleName, string? fuelType)
+    {
+        var name = EmptyToDash(vehicleName);
+        return string.IsNullOrWhiteSpace(fuelType)
+            ? name
+            : $"{name}({fuelType})";
     }
 
     private static string GetDisplayFileType(CustomerFile customerFile)

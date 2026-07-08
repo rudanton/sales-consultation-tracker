@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="고객 추가"
         Width="420"
-        Height="310"
+        Height="330"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         Background="#F5F7FA"
@@ -48,11 +48,8 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <StackPanel Margin="0,0,0,14">
+            <StackPanel Margin="0,0,0,16">
                 <TextBlock Text="고객 추가" FontSize="18" FontWeight="Bold" />
-                <TextBlock Text="이름과 연락처를 먼저 등록한 뒤 상세 상담 내용을 채웁니다."
-                           Style="{StaticResource MutedText}"
-                           Margin="0,3,0,0" />
             </StackPanel>
 
             <StackPanel Grid.Row="1">
@@ -65,16 +62,8 @@
                 <TextBlock Text="연락처" Style="{StaticResource MutedText}" />
                 <TextBox x:Name="CustomerPhoneTextBox"
                          Padding="8,5"
-                         Margin="0,5,0,10"
+                         Margin="0,5,0,0"
                          LostFocus="CustomerPhoneTextBox_LostFocus" />
-
-                <TextBlock Text="관심 차량" Style="{StaticResource MutedText}" />
-                <ComboBox x:Name="CustomerVehicleComboBox"
-                          IsEditable="True"
-                          IsTextSearchEnabled="True"
-                          ItemsSource="{Binding CustomerVehicleNames}"
-                          Padding="4,3"
-                          Margin="0,5,0,0" />
             </StackPanel>
 
             <StackPanel Grid.Row="2"

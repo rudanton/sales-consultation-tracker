@@ -13,6 +13,10 @@ public sealed class CustomerItemViewModel
 
     public required string VehicleName { get; init; }
 
+    public required string CustomerType { get; init; }
+
+    public required string VehicleSummary { get; init; }
+
     public CustomerStatus Status { get; init; }
 
     public required string StatusText { get; init; }
@@ -35,8 +39,8 @@ public sealed class CustomerItemViewModel
 
     public ObservableCollection<FileItemViewModel> Files { get; } = [];
 
-    public string ListDetail => $"{StatusText} · {PhoneNumber} · {VehicleName}";
-    public string ContactDetail => $"{PhoneNumber} · {VehicleName}";
+    public string ListDetail => $"{StatusText} · {PhoneNumber} · {CustomerType} · {VehicleSummary}";
+    public string ContactDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
 
-    public string HeaderDetail => $"{PhoneNumber} · {VehicleName}";
+    public string HeaderDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
 }

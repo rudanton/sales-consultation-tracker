@@ -15,8 +15,6 @@ public partial class AddCustomerDialog : Window
 
     public string? CustomerPhone => TrimToNull(CustomerPhoneTextBox.Text);
 
-    public string? CustomerVehicleName => TrimToNull(CustomerVehicleComboBox.Text);
-
     private void CustomerNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         SaveButton.IsEnabled = !string.IsNullOrWhiteSpace(CustomerNameTextBox.Text);

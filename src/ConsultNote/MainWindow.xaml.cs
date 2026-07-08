@@ -17,8 +17,8 @@ namespace ConsultNote;
 public partial class MainWindow : Window
 {
     private const string MileagePlaceholder = "0.0~5.0";
-    private const string PrepaymentPlaceholder = "선납금";
-    private const string DepositPlaceholder = "보증금";
+    private const string VehicleDetailPlaceholder = "상세 옵션";
+    private const string DeliveryRegionDetailPlaceholder = "상세 지역";
     private readonly GridLength _openSidebarWidth = new(360);
     private readonly GridLength _closedSidebarWidth = new(94);
     private bool _isSidebarOpen = true;
@@ -31,6 +31,18 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         UpdateMileageCustomInput();
         LoadSelectedCustomerConditionForm();
+        Loaded += MainWindow_Loaded;
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Normal;
+        Show();
+        Activate();
+        Focus();
+
+        Topmost = true;
+        Topmost = false;
     }
 
     private void SidebarToggleButton_Click(object sender, RoutedEventArgs e)
@@ -40,9 +52,9 @@ public partial class MainWindow : Window
         SidebarColumn.Width = _isSidebarOpen ? _openSidebarWidth : _closedSidebarWidth;
         SidebarPanel.Visibility = _isSidebarOpen ? Visibility.Visible : Visibility.Collapsed;
         SidebarCollapsedPanel.Visibility = _isSidebarOpen ? Visibility.Collapsed : Visibility.Visible;
-        SidebarToggleButton.Content = "‹";
-        SidebarCollapsedToggleButton.Content = "›";
-        SidebarToggleButton.ToolTip = _isSidebarOpen ? "파일 닫기" : "파일 열기";
+        SidebarToggleButton.Content = "사이드바 접기";
+        SidebarCollapsedToggleButton.Content = "파일 ›";
+        SidebarToggleButton.ToolTip = _isSidebarOpen ? "파일 사이드바 접기" : "파일 열기";
         SidebarCollapsedToggleButton.ToolTip = SidebarToggleButton.ToolTip;
     }
 
@@ -68,7 +80,7 @@ public partial class MainWindow : Window
         _ = viewModel.AddCustomer(
                 dialog.CustomerName,
                 dialog.CustomerPhone,
-                dialog.CustomerVehicleName);
+                vehicleName: null);
     }
 
     private void VehicleManagementButton_Click(object sender, RoutedEventArgs e)
@@ -80,6 +92,15 @@ public partial class MainWindow : Window
 
         dialog.ShowDialog();
         GetViewModel()?.LoadVehicleOptions();
+    }
+
+    private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        var viewModel = GetViewModel();
+        if (viewModel is not null)
+        {
+            viewModel.SearchText = string.Empty;
+        }
     }
 
     private void ConsultationExportButton_Click(object sender, RoutedEventArgs e)
@@ -137,26 +158,12 @@ public partial class MainWindow : Window
                 return;
             }
 
-            customer.ContractType = RentRadioButton.IsChecked == true ? "렌트" : "리스";
-            customer.FormVehicleBrand = GetSelectedText(VehicleBrandComboBox);
-            customer.FormVehicleName = GetSelectedText(VehicleNameComboBox);
-            customer.FormFuelType = GetSelectedText(FuelTypeComboBox);
-            customer.VehicleName = TrimToNull(customer.FormVehicleName);
-            customer.FormVehicleDetail = CleanPlaceholder(VehicleDetailTextBox.Text, "상세 옵션");
-            customer.ContractPeriod = GetSelectedText(ContractPeriodComboBox);
-            customer.Mileage = mileage;
-            customer.DeliveryRegion = GetDeliveryRegionText();
-            customer.InitialCost = GetInitialCostText();
-            customer.OwnerType = GetOwnerType();
-            customer.HasBusinessExperienceOverOneYear = BusinessExperienceToggleButton.IsChecked == true;
-            customer.ActualDriver = TrimToNull(ActualDriverTextBox.Text);
-            customer.HasDriverLicenseOverOneYear = DriverLicenseToggleButton.IsChecked == true;
-            customer.InsuranceAge = GetSelectedText(InsuranceAgeComboBox);
-            customer.CreditStatus = TrimToNull(CreditStatusTextBox.Text);
-            customer.SpecialNote = TrimToNull(SpecialNoteTextBox.Text);
-            customer.IsContractHolderSameAsCustomer = ContractHolderSameAsCustomerCheckBox.IsChecked == true;
-            customer.ContractHolderName = TrimToNull(ContractHolderNameTextBox.Text);
-            customer.ContractHolderPhoneNumber = PhoneNumberFormatter.Normalize(ContractHolderPhoneTextBox.Text);
+            if (!TrySaveBasicInfoToCustomer(customer))
+            {
+                return;
+            }
+
+            SaveConditionFormToCustomer(customer, mileage);
             customer.UpdatedAt = DateTime.Now;
 
             dbContext.SaveChanges();
@@ -177,9 +184,9 @@ public partial class MainWindow : Window
         }
 
         var content = ConsultationContentTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(content))
+
+        if (!TryGetMileageValue(out var mileage))
         {
-            MessageBox.Show("상담내역을 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -194,15 +201,21 @@ public partial class MainWindow : Window
                 return;
             }
 
-            dbContext.ConsultationLogs.Add(new ConsultationLog
-            {
-                CustomerId = customer.Id,
-                Content = content,
-                CreatedAt = now,
-                UpdatedAt = now,
-            });
+            SaveConditionFormToCustomer(customer, mileage);
 
-            customer.LastConsultedAt = now;
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                dbContext.ConsultationLogs.Add(new ConsultationLog
+                {
+                    CustomerId = customer.Id,
+                    Content = content,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+
+                customer.LastConsultedAt = now;
+            }
+
             customer.LastContactAttemptAt = now;
             var nextStatus = viewModel?.SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
             if (customer.Status != nextStatus)
@@ -231,12 +244,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        var vehicleName = GetSelectedText(VehicleNameComboBox);
-        var searchText = TrimToNull(vehicleName) ?? TrimToNull(GetSelectedCustomer()?.VehicleName);
+        var searchText = GetSelectedVehicleNameForSearch() ?? TrimToNull(GetSelectedCustomer()?.VehicleName);
 
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            MessageBox.Show("검색할 차량이나 조건을 먼저 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("같은 차량 견적을 찾을 차량명을 먼저 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -266,7 +278,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dialog = new AddCustomerFileDialog
+        var dialog = new AddCustomerFileDialog(GetOwnerType())
         {
             Owner = this,
         };
@@ -306,10 +318,11 @@ public partial class MainWindow : Window
                 CustomerId = selectedCustomer.Id,
                 OriginalFileName = dialog.OriginalFileName,
                 StoredFileName = storedFileName,
-                DisplayName = dialog.DisplayName,
+                DisplayName = BuildCustomerFileDisplayName(selectedCustomer.Name, dialog.FileType, dialog.CustomFileType, dialog.FileOrder),
                 FilePath = destinationPath,
                 FileType = dialog.FileType,
                 CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null,
+                FileOrder = dialog.FileOrder,
                 Memo = dialog.Memo,
                 CreatedAt = now,
             });
@@ -377,31 +390,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void InitialCostTextBox_GotFocus(object sender, RoutedEventArgs e)
-    {
-        if (sender is not TextBox textBox)
-        {
-            return;
-        }
-
-        var placeholder = GetInitialCostPlaceholder(textBox);
-        if (textBox.Text == placeholder)
-        {
-            textBox.Text = string.Empty;
-            textBox.Foreground = SystemColors.ControlTextBrush;
-        }
-    }
-
-    private void InitialCostTextBox_LostFocus(object sender, RoutedEventArgs e)
-    {
-        if (sender is not TextBox textBox || !string.IsNullOrWhiteSpace(textBox.Text))
-        {
-            return;
-        }
-
-        SetInitialCostPlaceholder(textBox);
-    }
-
     private void CustomerPhoneTextBox_LostFocus(object sender, RoutedEventArgs e)
     {
         if (sender is TextBox textBox)
@@ -428,6 +416,99 @@ public partial class MainWindow : Window
         ContractHolderPhoneTextBox.IsEnabled = !useCustomerInfo;
     }
 
+    private void SaveConditionFormToCustomer(Customer customer, string mileage)
+    {
+        customer.ContractType = GetContractType();
+        customer.FormVehicleBrand = TrimToNull(GetSelectedText(VehicleBrandComboBox));
+        customer.FormVehicleName = TrimToNull(GetSelectedText(VehicleNameComboBox));
+        customer.FormFuelType = TrimToNull(GetSelectedText(FuelTypeComboBox));
+        customer.VehicleName = TrimToNull(customer.FormVehicleName);
+        customer.FormVehicleDetail = CleanPlaceholder(VehicleDetailTextBox.Text, VehicleDetailPlaceholder);
+        customer.ContractPeriod = TrimToNull(GetSelectedText(ContractPeriodComboBox));
+        customer.Mileage = TrimToNull(mileage);
+        customer.DeliveryRegion = TrimToNull(GetDeliveryRegionText());
+        customer.InitialCost = TrimToNull(GetInitialCostText());
+        customer.OwnerType = TrimToNull(GetOwnerType());
+        customer.HasBusinessExperienceOverOneYear = BusinessExperienceToggleButton.IsChecked == true;
+        customer.ActualDriver = TrimToNull(ActualDriverTextBox.Text);
+        customer.HasDriverLicenseOverOneYear = DriverLicenseToggleButton.IsChecked == true;
+        customer.InsuranceAge = TrimToNull(GetSelectedText(InsuranceAgeComboBox));
+        customer.CreditStatus = TrimToNull(CreditStatusTextBox.Text);
+        customer.SpecialNote = TrimToNull(SpecialNoteTextBox.Text);
+
+        var shouldSaveContractHolder = ShouldShowContractHolder();
+        customer.IsContractHolderSameAsCustomer = shouldSaveContractHolder && ContractHolderSameAsCustomerCheckBox.IsChecked == true;
+        customer.ContractHolderName = shouldSaveContractHolder ? TrimToNull(ContractHolderNameTextBox.Text) : null;
+        customer.ContractHolderPhoneNumber = shouldSaveContractHolder ? PhoneNumberFormatter.Normalize(ContractHolderPhoneTextBox.Text) : null;
+    }
+
+    private bool TrySaveBasicInfoToCustomer(Customer customer)
+    {
+        var normalizedName = TrimToNull(GetViewModel()?.CustomerNameInput);
+        if (normalizedName is null)
+        {
+            MessageBox.Show("고객 이름을 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return false;
+        }
+
+        customer.Name = normalizedName;
+        customer.PhoneNumber = PhoneNumberFormatter.Normalize(GetViewModel()?.CustomerPhoneInput);
+        customer.Memo = TrimToNull(GetViewModel()?.CustomerMemoInput);
+        return true;
+    }
+
+    private void OwnerTypeRadioButton_Checked(object sender, RoutedEventArgs e)
+    {
+        UpdateContractHolderVisibility();
+    }
+
+    private void UpdateContractHolderVisibility()
+    {
+        if (!IsInitialized)
+        {
+            return;
+        }
+
+        var shouldShow = ShouldShowContractHolder();
+        ContractHolderPanel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+        if (!shouldShow)
+        {
+            ContractHolderSameAsCustomerCheckBox.IsChecked = false;
+            ContractHolderNameTextBox.Text = string.Empty;
+            ContractHolderPhoneTextBox.Text = string.Empty;
+        }
+    }
+
+    private bool ShouldShowContractHolder()
+    {
+        return PersonalOwnerRadioButton.IsChecked == true || SoleProprietorOwnerRadioButton.IsChecked == true;
+    }
+
+    private void PlaceholderTextBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBox textBox)
+        {
+            return;
+        }
+
+        var placeholder = GetPlaceholder(textBox);
+        if (textBox.Text == placeholder)
+        {
+            textBox.Text = string.Empty;
+            textBox.Foreground = SystemColors.ControlTextBrush;
+        }
+    }
+
+    private void PlaceholderTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBox textBox || !string.IsNullOrWhiteSpace(textBox.Text))
+        {
+            return;
+        }
+
+        SetPlaceholder(textBox);
+    }
+
     private string BuildConsultationExportText()
     {
         var vehicleSpec = string.Join(" ", new[]
@@ -435,7 +516,7 @@ public partial class MainWindow : Window
             GetSelectedText(VehicleBrandComboBox),
             GetSelectedText(VehicleNameComboBox),
             GetSelectedText(FuelTypeComboBox),
-            CleanPlaceholder(VehicleDetailTextBox.Text, "상세 옵션"),
+            CleanPlaceholder(VehicleDetailTextBox.Text, VehicleDetailPlaceholder),
         }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
         _ = TryGetMileageValue(out var mileage);
@@ -445,7 +526,7 @@ public partial class MainWindow : Window
 
         return string.Join(Environment.NewLine, new[]
         {
-            $"★렌트/리스 : {(RentRadioButton.IsChecked == true ? "렌트" : "리스")}",
+            $"★렌트/리스 : {GetContractType()}",
             $"★차량스팩 : {vehicleSpec}",
             $"★계약기간 : {GetSelectedText(ContractPeriodComboBox)}",
             $"★주행거리 : {mileage}",
@@ -530,6 +611,26 @@ public partial class MainWindow : Window
         return DataContext as MainWindowViewModel;
     }
 
+    private string? GetSelectedVehicleNameForSearch()
+    {
+        return VehicleNameComboBox.SelectedItem switch
+        {
+            ComboBoxItem item => TrimToNull(item.Content?.ToString()),
+            string text => TrimToNull(text),
+            object value => TrimToNull(value.ToString()),
+            _ => null,
+        };
+    }
+
+    private static string BuildCustomerFileDisplayName(string customerName, string fileType, string? customFileType, int fileOrder)
+    {
+        var displayFileType = fileType == "기타" && !string.IsNullOrWhiteSpace(customFileType)
+            ? customFileType.Trim()
+            : fileType.Trim();
+
+        return $"{customerName.Trim()}_{displayFileType}_{fileOrder}";
+    }
+
     private string GetLatestConsultationContent()
     {
         var currentInput = ConsultationContentTextBox.Text.Trim();
@@ -564,7 +665,7 @@ public partial class MainWindow : Window
         SetComboText(VehicleBrandComboBox, customer.FormVehicleBrand);
         SetComboText(VehicleNameComboBox, customer.FormVehicleName);
         SetComboText(FuelTypeComboBox, customer.FormFuelType);
-        VehicleDetailTextBox.Text = string.IsNullOrWhiteSpace(customer.FormVehicleDetail) ? "상세 옵션" : customer.FormVehicleDetail;
+        SetPlaceholderTextOrValue(VehicleDetailTextBox, customer.FormVehicleDetail);
         SetComboText(ContractPeriodComboBox, customer.ContractPeriod);
         SetMileageControl(customer.Mileage);
         SetDeliveryRegion(customer.DeliveryRegion);
@@ -584,7 +685,7 @@ public partial class MainWindow : Window
 
     private void ClearConditionForm()
     {
-        RentRadioButton.IsChecked = true;
+        RentRadioButton.IsChecked = false;
         LeaseRadioButton.IsChecked = false;
         VehicleBrandComboBox.SelectedItem = null;
         VehicleBrandComboBox.Text = string.Empty;
@@ -592,21 +693,24 @@ public partial class MainWindow : Window
         VehicleNameComboBox.Text = string.Empty;
         FuelTypeComboBox.SelectedItem = null;
         FuelTypeComboBox.Text = string.Empty;
-        VehicleDetailTextBox.Text = "상세 옵션";
-        ContractPeriodComboBox.SelectedIndex = 2;
+        SetPlaceholder(VehicleDetailTextBox);
+        ContractPeriodComboBox.SelectedIndex = -1;
+        ContractPeriodComboBox.Text = string.Empty;
         SetMileageControl(null);
-        DeliveryRegionComboBox.SelectedIndex = 0;
-        DeliveryRegionDetailTextBox.Text = string.Empty;
+        DeliveryRegionComboBox.SelectedIndex = -1;
+        DeliveryRegionComboBox.Text = string.Empty;
+        SetPlaceholder(DeliveryRegionDetailTextBox);
         NoInitialCostCheckBox.IsChecked = false;
-        SetInitialCostPlaceholder(PrepaymentTextBox);
-        SetInitialCostPlaceholder(DepositTextBox);
-        PersonalOwnerRadioButton.IsChecked = true;
+        PrepaymentTextBox.Text = string.Empty;
+        DepositTextBox.Text = string.Empty;
+        PersonalOwnerRadioButton.IsChecked = false;
         SoleProprietorOwnerRadioButton.IsChecked = false;
         CorporateOwnerRadioButton.IsChecked = false;
         BusinessExperienceToggleButton.IsChecked = false;
         ActualDriverTextBox.Text = string.Empty;
         DriverLicenseToggleButton.IsChecked = false;
-        InsuranceAgeComboBox.SelectedIndex = 1;
+        InsuranceAgeComboBox.SelectedIndex = -1;
+        InsuranceAgeComboBox.Text = string.Empty;
         CreditStatusTextBox.Text = string.Empty;
         SpecialNoteTextBox.Text = string.Empty;
         ContractHolderSameAsCustomerCheckBox.IsChecked = false;
@@ -614,10 +718,16 @@ public partial class MainWindow : Window
         ContractHolderPhoneTextBox.Text = string.Empty;
         ContractHolderNameTextBox.IsEnabled = true;
         ContractHolderPhoneTextBox.IsEnabled = true;
+        UpdateContractHolderVisibility();
     }
 
     private string GetOwnerType()
     {
+        if (PersonalOwnerRadioButton.IsChecked == true)
+        {
+            return "개인";
+        }
+
         if (SoleProprietorOwnerRadioButton.IsChecked == true)
         {
             return "개인사업자";
@@ -628,7 +738,22 @@ public partial class MainWindow : Window
             return "법인사업자";
         }
 
-        return "개인";
+        return string.Empty;
+    }
+
+    private string GetContractType()
+    {
+        if (RentRadioButton.IsChecked == true)
+        {
+            return "렌트";
+        }
+
+        if (LeaseRadioButton.IsChecked == true)
+        {
+            return "리스";
+        }
+
+        return string.Empty;
     }
 
     private static string FormatToggle(bool? isChecked)
@@ -702,7 +827,7 @@ public partial class MainWindow : Window
         return string.Join(" ", new[]
         {
             GetSelectedText(DeliveryRegionComboBox),
-            DeliveryRegionDetailTextBox.Text.Trim(),
+            CleanPlaceholder(DeliveryRegionDetailTextBox.Text, DeliveryRegionDetailPlaceholder),
         }.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
@@ -712,8 +837,8 @@ public partial class MainWindow : Window
             ? "없음"
             : string.Join(" / ", new[]
             {
-                CleanPlaceholder(PrepaymentTextBox.Text, "선납금"),
-                CleanPlaceholder(DepositTextBox.Text, "보증금"),
+                TrimToNull(PrepaymentTextBox.Text),
+                TrimToNull(DepositTextBox.Text),
             }.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
@@ -748,6 +873,40 @@ public partial class MainWindow : Window
     {
         var text = value?.Trim() ?? string.Empty;
         return text == placeholder ? string.Empty : text;
+    }
+
+    private static string GetPlaceholder(TextBox textBox)
+    {
+        return textBox.Name switch
+        {
+            nameof(VehicleDetailTextBox) => VehicleDetailPlaceholder,
+            nameof(DeliveryRegionDetailTextBox) => DeliveryRegionDetailPlaceholder,
+            _ => string.Empty,
+        };
+    }
+
+    private static void SetPlaceholder(TextBox textBox)
+    {
+        var placeholder = GetPlaceholder(textBox);
+        if (string.IsNullOrWhiteSpace(placeholder))
+        {
+            return;
+        }
+
+        textBox.Text = placeholder;
+        textBox.Foreground = SystemColors.GrayTextBrush;
+    }
+
+    private static void SetPlaceholderTextOrValue(TextBox textBox, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SetPlaceholder(textBox);
+            return;
+        }
+
+        textBox.Text = value;
+        textBox.Foreground = SystemColors.ControlTextBrush;
     }
 
     private static bool IsValidCustomMileage(string value)
@@ -794,7 +953,8 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(mileage))
         {
-            MileageComboBox.SelectedIndex = 2;
+            MileageComboBox.SelectedIndex = -1;
+            MileageComboBox.Text = string.Empty;
             UpdateMileageCustomInput();
             return;
         }
@@ -816,12 +976,13 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(deliveryRegion))
         {
+            SetPlaceholder(DeliveryRegionDetailTextBox);
             return;
         }
 
         var parts = deliveryRegion.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         SetComboText(DeliveryRegionComboBox, parts[0]);
-        DeliveryRegionDetailTextBox.Text = parts.Length > 1 ? parts[1] : string.Empty;
+        SetPlaceholderTextOrValue(DeliveryRegionDetailTextBox, parts.Length > 1 ? parts[1] : null);
     }
 
     private void SetInitialCost(string? initialCost)
@@ -829,50 +990,27 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(initialCost))
         {
             NoInitialCostCheckBox.IsChecked = false;
-            SetInitialCostPlaceholder(PrepaymentTextBox);
-            SetInitialCostPlaceholder(DepositTextBox);
+            PrepaymentTextBox.Text = string.Empty;
+            DepositTextBox.Text = string.Empty;
             return;
         }
 
         NoInitialCostCheckBox.IsChecked = initialCost == "없음";
         if (NoInitialCostCheckBox.IsChecked == true)
         {
-            SetInitialCostPlaceholder(PrepaymentTextBox);
-            SetInitialCostPlaceholder(DepositTextBox);
+            PrepaymentTextBox.Text = string.Empty;
+            DepositTextBox.Text = string.Empty;
             return;
         }
 
         var parts = initialCost.Split(" / ", StringSplitOptions.TrimEntries);
-        SetInitialCostTextOrPlaceholder(PrepaymentTextBox, parts.ElementAtOrDefault(0));
-        SetInitialCostTextOrPlaceholder(DepositTextBox, parts.ElementAtOrDefault(1));
-    }
-
-    private static string GetInitialCostPlaceholder(TextBox textBox)
-    {
-        return textBox.Name == nameof(DepositTextBox) ? DepositPlaceholder : PrepaymentPlaceholder;
-    }
-
-    private static void SetInitialCostTextOrPlaceholder(TextBox textBox, string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            SetInitialCostPlaceholder(textBox);
-            return;
-        }
-
-        textBox.Text = value;
-        textBox.Foreground = SystemColors.ControlTextBrush;
-    }
-
-    private static void SetInitialCostPlaceholder(TextBox textBox)
-    {
-        textBox.Text = GetInitialCostPlaceholder(textBox);
-        textBox.Foreground = SystemColors.GrayTextBrush;
+        PrepaymentTextBox.Text = parts.ElementAtOrDefault(0) ?? string.Empty;
+        DepositTextBox.Text = parts.ElementAtOrDefault(1) ?? string.Empty;
     }
 
     private void SetOwnerType(string? ownerType)
     {
-        PersonalOwnerRadioButton.IsChecked = string.IsNullOrWhiteSpace(ownerType) || ownerType == "개인";
+        PersonalOwnerRadioButton.IsChecked = ownerType == "개인";
         SoleProprietorOwnerRadioButton.IsChecked = ownerType == "개인사업자";
         CorporateOwnerRadioButton.IsChecked = ownerType == "법인사업자";
     }

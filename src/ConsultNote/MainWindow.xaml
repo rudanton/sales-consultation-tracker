@@ -151,7 +151,12 @@
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource MutedText}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding CreatedAtText}" Style="{StaticResource MutedText}" />
+                        <TextBlock Text="{Binding StatusText}"
+                                   Style="{StaticResource MutedText}"
+                                   Margin="8,0,0,0" />
+                    </StackPanel>
                     <TextBlock Text="{Binding Content}" Margin="0,5,0,0" />
                 </StackPanel>
             </Border>
@@ -197,13 +202,22 @@
                                Margin="0,2,0,0" />
                 </StackPanel>
 
-                <TextBox Grid.Column="1"
-                         Height="38"
-                         Padding="12,8"
-                         FontSize="14"
-                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         Foreground="#334155"
-                         VerticalAlignment="Center" />
+                <Grid Grid.Column="1" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Height="38"
+                             Padding="12,8"
+                             FontSize="14"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Foreground="#334155" />
+                    <Button Grid.Column="2"
+                            Content="초기화"
+                            Style="{StaticResource ToolbarButton}"
+                            Click="ClearSearchButton_Click" />
+                </Grid>
 
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
@@ -236,7 +250,6 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -258,22 +271,7 @@
                                   SelectedItem="{Binding SelectedSortDirection}" />
                     </Grid>
 
-                    <Border Grid.Row="1"
-                            Background="#F8FAFC"
-                            BorderBrush="#E2E8F0"
-                            BorderThickness="1"
-                            CornerRadius="6"
-                            Padding="10"
-                            Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="빠른 검색 결과" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding SearchSummary}"
-                                       Style="{StaticResource MutedText}"
-                                       Margin="0,3,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <ListBox Grid.Row="2"
+                    <ListBox Grid.Row="1"
                              ItemsSource="{Binding Customers}"
                              SelectedItem="{Binding SelectedCustomer}"
                              ItemTemplate="{StaticResource CustomerTemplate}"
@@ -309,11 +307,6 @@
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Margin="0,4,0,0" />
                         </StackPanel>
-                        <Button Grid.Column="1"
-                                Content="기본 정보 저장"
-                                Style="{StaticResource ToolbarButton}"
-                                VerticalAlignment="Top"
-                                Command="{Binding SaveCustomerCommand}" />
                     </Grid>
 
                     <Border Grid.Row="1"
@@ -367,33 +360,33 @@
                                 BorderBrush="#E2E8F0"
                                 BorderThickness="1"
                                 CornerRadius="6"
-                                Padding="14,12">
+                                Padding="12,10">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="상담 조건 양식" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <TextBlock Text="상담 조건 양식" FontWeight="SemiBold" Margin="0,0,0,6" />
 
                                 <ScrollViewer Grid.Row="1"
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled"
                                               CanContentScroll="False"
                                               Margin="2,0">
-                                <StackPanel Margin="0,0,14,0">
-                                    <UniformGrid Columns="1" Margin="0,0,0,4">
-                                            <StackPanel Margin="0,0,0,6">
+                                <StackPanel Margin="0,0,6,0">
+                                    <UniformGrid Columns="1" Margin="0">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="렌트/리스" Style="{StaticResource MutedText}" />
-                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                                    <RadioButton x:Name="RentRadioButton" Content="렌트" GroupName="ContractType" IsChecked="True" Margin="0,0,14,0" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <RadioButton x:Name="RentRadioButton" Content="렌트" GroupName="ContractType" Margin="0,0,14,0" />
                                                     <RadioButton x:Name="LeaseRadioButton" Content="리스" GroupName="ContractType" />
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="차량스팩" Style="{StaticResource MutedText}" />
-                                                <Grid Margin="0,5,0,0">
+                                                <Grid Margin="0,2,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="76" />
                                                         <ColumnDefinition Width="6" />
@@ -419,16 +412,18 @@
                                                               ItemsSource="{Binding FuelTypes}"
                                                               SelectedItem="{Binding SelectedFuelType}" />
                                                 </Grid>
-                                                <TextBox x:Name="VehicleDetailTextBox"
-                                                         Text="상세 옵션"
-                                                         Padding="8,4"
-                                                         Foreground="{StaticResource MutedTextBrush}"
-                                                         Margin="0,6,0,0" />
+                                                    <TextBox x:Name="VehicleDetailTextBox"
+                                                             Text="상세 옵션"
+                                                             Padding="8,3"
+                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             Margin="0,4,0,0"
+                                                             GotFocus="PlaceholderTextBox_GotFocus"
+                                                             LostFocus="PlaceholderTextBox_LostFocus" />
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="계약기간" Style="{StaticResource MutedText}" />
-                                                <ComboBox x:Name="ContractPeriodComboBox" SelectedIndex="2" Margin="0,5,0,0">
+                                                <ComboBox x:Name="ContractPeriodComboBox" Margin="0,2,0,0">
                                                     <ComboBoxItem Content="단기" />
                                                     <ComboBoxItem Content="36개월" />
                                                     <ComboBoxItem Content="48개월" />
@@ -436,16 +431,15 @@
                                                 </ComboBox>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="주행거리" Style="{StaticResource MutedText}" />
-                                                <Grid Margin="0,5,0,0">
+                                                <Grid Margin="0,2,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="130" />
                                                         <ColumnDefinition Width="8" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
                                                     <ComboBox x:Name="MileageComboBox"
-                                                              SelectedIndex="2"
                                                               SelectionChanged="MileageComboBox_SelectionChanged">
                                                         <ComboBoxItem Content="1만km" />
                                                         <ComboBoxItem Content="1.5만km" />
@@ -463,7 +457,7 @@
                                                              Grid.Column="2"
                                                              Text=""
                                                              IsEnabled="False"
-                                                             Padding="8,4"
+                                                             Padding="8,3"
                                                              Foreground="{StaticResource MutedTextBrush}"
                                                              ToolTip="직접입력 선택 시 0~5 사이, 소수점 1자리까지 입력"
                                                              GotFocus="MileageCustomTextBox_GotFocus"
@@ -471,28 +465,39 @@
                                                 </Grid>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="인도지역" Style="{StaticResource MutedText}" />
-                                                <Grid Margin="0,5,0,0">
+                                                <Grid Margin="0,2,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="120" />
                                                         <ColumnDefinition Width="8" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <ComboBox x:Name="DeliveryRegionComboBox" SelectedIndex="0">
-                                                        <ComboBoxItem Content="서울" />
-                                                        <ComboBoxItem Content="경기" />
-                                                        <ComboBoxItem Content="인천" />
-                                                        <ComboBoxItem Content="부산" />
-                                                        <ComboBoxItem Content="대구" />
+                                                    <ComboBox x:Name="DeliveryRegionComboBox">
+                                                        <ComboBoxItem Content="미정" />
+                                                        <ComboBoxItem Content="서울/경기/인천" />
+                                                        <ComboBoxItem Content="부산/울산/경남" />
+                                                        <ComboBoxItem Content="대구/경북" />
+                                                        <ComboBoxItem Content="광주/전남" />
+                                                        <ComboBoxItem Content="전북" />
+                                                        <ComboBoxItem Content="대전/세종/충남" />
+                                                        <ComboBoxItem Content="충북" />
+                                                        <ComboBoxItem Content="강원" />
+                                                        <ComboBoxItem Content="제주" />
                                                     </ComboBox>
-                                                    <TextBox x:Name="DeliveryRegionDetailTextBox" Grid.Column="2" Padding="8,4" />
+                                                    <TextBox x:Name="DeliveryRegionDetailTextBox"
+                                                             Grid.Column="2"
+                                                             Text="상세 지역"
+                                                             Padding="8,3"
+                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             GotFocus="PlaceholderTextBox_GotFocus"
+                                                             LostFocus="PlaceholderTextBox_LostFocus" />
                                                 </Grid>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="초기비용" Style="{StaticResource MutedText}" />
-                                                <Grid Margin="0,5,0,0">
+                                                <Grid Margin="0,2,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="70" />
                                                         <ColumnDefinition Width="8" />
@@ -501,35 +506,33 @@
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
                                                     <CheckBox x:Name="NoInitialCostCheckBox" Content="없음" VerticalAlignment="Center" />
-                                                    <TextBox x:Name="PrepaymentTextBox"
-                                                             Grid.Column="2"
-                                                             Text="선납금"
-                                                             Padding="8,4"
-                                                             Foreground="{StaticResource MutedTextBrush}"
-                                                             GotFocus="InitialCostTextBox_GotFocus"
-                                                             LostFocus="InitialCostTextBox_LostFocus" />
-                                                    <TextBox x:Name="DepositTextBox"
-                                                             Grid.Column="4"
-                                                             Text="보증금"
-                                                             Padding="8,4"
-                                                             Foreground="{StaticResource MutedTextBrush}"
-                                                             GotFocus="InitialCostTextBox_GotFocus"
-                                                             LostFocus="InitialCostTextBox_LostFocus" />
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="선납금" Style="{StaticResource MutedText}" />
+                                                        <TextBox x:Name="PrepaymentTextBox"
+                                                                 Padding="8,3"
+                                                                 Margin="0,2,0,0" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4">
+                                                        <TextBlock Text="보증금" Style="{StaticResource MutedText}" />
+                                                        <TextBox x:Name="DepositTextBox"
+                                                                 Padding="8,3"
+                                                                 Margin="0,2,0,0" />
+                                                    </StackPanel>
                                                 </Grid>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="명의형태" Style="{StaticResource MutedText}" />
-                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                                    <RadioButton x:Name="PersonalOwnerRadioButton" Content="개인" GroupName="OwnerType" IsChecked="True" Margin="0,0,12,0" />
-                                                    <RadioButton x:Name="SoleProprietorOwnerRadioButton" Content="개인사업자" GroupName="OwnerType" Margin="0,0,12,0" />
-                                                    <RadioButton x:Name="CorporateOwnerRadioButton" Content="법인사업자" GroupName="OwnerType" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <RadioButton x:Name="PersonalOwnerRadioButton" Content="개인" GroupName="OwnerType" Margin="0,0,12,0" Checked="OwnerTypeRadioButton_Checked" />
+                                                    <RadioButton x:Name="SoleProprietorOwnerRadioButton" Content="개인사업자" GroupName="OwnerType" Margin="0,0,12,0" Checked="OwnerTypeRadioButton_Checked" />
+                                                    <RadioButton x:Name="CorporateOwnerRadioButton" Content="법인사업자" GroupName="OwnerType" Checked="OwnerTypeRadioButton_Checked" />
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="사업업력 / 운전면허" Style="{StaticResource MutedText}" />
-                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                     <ToggleButton x:Name="BusinessExperienceToggleButton"
                                                                   Content="사업업력 1년 이상"
                                                                   Style="{StaticResource ProminentToggleButton}"
@@ -537,18 +540,18 @@
                                                     <ToggleButton x:Name="DriverLicenseToggleButton"
                                                                   Content="운전면허 1년 이상"
                                                                   Style="{StaticResource ProminentToggleButton}"
-                                                                  IsChecked="True" />
+                                                                  />
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="실운전자" Style="{StaticResource MutedText}" />
-                                                <TextBox x:Name="ActualDriverTextBox" Padding="8,4" Margin="0,5,0,0" />
+                                                <TextBox x:Name="ActualDriverTextBox" Padding="8,2" Margin="0,2,0,0" />
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="보험연령" Style="{StaticResource MutedText}" />
-                                                <ComboBox x:Name="InsuranceAgeComboBox" SelectedIndex="1" Margin="0,5,0,0">
+                                                <ComboBox x:Name="InsuranceAgeComboBox" Margin="0,2,0,0">
                                                     <ComboBoxItem Content="21세 이상" />
                                                     <ComboBoxItem Content="26세 이상" />
                                                     <ComboBoxItem Content="35세 이상" />
@@ -556,17 +559,17 @@
                                                 </ComboBox>
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="신용상태" Style="{StaticResource MutedText}" />
-                                                <TextBox x:Name="CreditStatusTextBox" Padding="8,4" Margin="0,5,0,0" />
+                                                <TextBox x:Name="CreditStatusTextBox" Padding="8,2" Margin="0,2,0,0" />
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,0,2">
                                                 <TextBlock Text="특이사항" Style="{StaticResource MutedText}" />
-                                                <TextBox x:Name="SpecialNoteTextBox" Padding="8,4" Margin="0,5,0,0" />
+                                                <TextBox x:Name="SpecialNoteTextBox" Padding="8,2" Margin="0,2,0,0" />
                                             </StackPanel>
 
-                                            <StackPanel Margin="0,0,0,6">
+                                            <StackPanel x:Name="ContractHolderPanel" Margin="0,0,0,2">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
@@ -579,18 +582,18 @@
                                                               Checked="ContractHolderSameAsCustomerCheckBox_Changed"
                                                               Unchecked="ContractHolderSameAsCustomerCheckBox_Changed" />
                                                 </Grid>
-                                                <Grid Margin="0,5,0,0">
+                                                <Grid Margin="0,2,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="8" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBox x:Name="ContractHolderNameTextBox"
-                                                             Padding="8,4"
+                                                             Padding="8,3"
                                                              ToolTip="명의자 이름" />
                                                     <TextBox x:Name="ContractHolderPhoneTextBox"
                                                              Grid.Column="2"
-                                                             Padding="8,4"
+                                                             Padding="8,3"
                                                              ToolTip="명의자 연락처"
                                                              LostFocus="CustomerPhoneTextBox_LostFocus" />
                                                 </Grid>
@@ -600,23 +603,18 @@
                                 </ScrollViewer>
 
                                 <Grid Grid.Row="2"
-                                      Margin="0,4,0,0">
+                                      Margin="0,3,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="8" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="8" />
                                         <ColumnDefinition Width="1.45*" />
                                     </Grid.ColumnDefinitions>
-                                    <Button Content="차량 찾기"
+                                    <Button Content="같은 차량 견적"
+                                            ToolTip="선택한 차량명으로 기존 상담과 견적 파일을 검색합니다."
                                             Style="{StaticResource ToolbarButton}"
                                             Click="SimilarConditionSearchButton_Click" />
                                     <Button Grid.Column="2"
-                                            Content="양식 저장"
-                                            Style="{StaticResource PrimaryButton}"
-                                            Click="ConditionFormSaveButton_Click" />
-                                    <Button Grid.Column="4"
-                                            Content="양식 복사"
+                                            Content="복사하기"
                                             Style="{StaticResource ToolbarButton}"
                                             Click="ConsultationExportButton_Click" />
                                 </Grid>
@@ -651,7 +649,7 @@
                                                       Margin="0,5,0,0" />
                                         </StackPanel>
                                         <Button Grid.Column="2"
-                                                Content="상담 저장"
+                                                Content="저장"
                                                 Style="{StaticResource PrimaryButton}"
                                                 Height="27"
                                                 MinHeight="27"
@@ -710,19 +708,23 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="파일" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="견적 이미지를 선택하면 아래에 미리 표시됩니다."
-                                           Style="{StaticResource MutedText}" />
                             </StackPanel>
                             <Button Grid.Column="1"
                                     Content="추가"
                                     Style="{StaticResource ToolbarButton}"
+                                    Height="28"
+                                    MinHeight="28"
+                                    Padding="9,0"
                                     VerticalAlignment="Top"
                                     Click="AddCustomerFileButton_Click" />
                             <Button x:Name="SidebarToggleButton"
                                     Grid.Column="3"
-                                    Content="‹"
-                                    ToolTip="파일 닫기"
-                                    Style="{StaticResource SidebarRailButton}"
+                                    Content="사이드바 접기"
+                                    ToolTip="파일 사이드바 접기"
+                                    Style="{StaticResource ToolbarButton}"
+                                    Height="28"
+                                    MinHeight="28"
+                                    Padding="9,0"
                                     VerticalAlignment="Top"
                                     Click="SidebarToggleButton_Click" />
                         </Grid>
@@ -787,18 +789,11 @@
                         Style="{StaticResource Panel}"
                         Padding="10"
                         Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal"
-                                VerticalAlignment="Top">
-                        <TextBlock Text="파일"
-                                   Style="{StaticResource SectionTitle}"
-                                   VerticalAlignment="Center" />
-                        <Button x:Name="SidebarCollapsedToggleButton"
-                                Content="›"
-                                ToolTip="파일 열기"
-                                Style="{StaticResource SidebarRailButton}"
-                                Margin="8,0,0,0"
-                                Click="SidebarToggleButton_Click" />
-                    </StackPanel>
+                    <Button x:Name="SidebarCollapsedToggleButton"
+                            Content="파일 ›"
+                            ToolTip="파일 열기"
+                            Style="{StaticResource ToolbarButton}"
+                            Click="SidebarToggleButton_Click" />
                 </Border>
             </Grid>
         </Grid>

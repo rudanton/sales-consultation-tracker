@@ -20,6 +20,8 @@ public sealed class CustomerFile
 
     public string? CustomFileType { get; set; }
 
+    public int FileOrder { get; set; } = 1;
+
     public string? Memo { get; set; }
 
     public DateTime CreatedAt { get; set; }

@@ -112,6 +112,10 @@ public sealed class AppDbContext : DbContext
             entity.Property(customerFile => customerFile.CustomFileType)
                 .HasMaxLength(80);
 
+            entity.Property(customerFile => customerFile.FileOrder)
+                .HasDefaultValue(1)
+                .IsRequired();
+
             entity.Property(customerFile => customerFile.CreatedAt).IsRequired();
 
             entity.HasIndex(customerFile => customerFile.DisplayName);
