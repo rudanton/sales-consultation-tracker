@@ -245,7 +245,7 @@ public partial class MainWindow : Window
         }
 
         MessageBox.Show(
-            $"상담 기록을 txt 파일로 저장했습니다.\n\n{exportPath}",
+            $"고객 1명의 전체 상담 기록을 txt 파일 1개로 저장했습니다.\n과거 기록부터 최신 기록 순서로 정리됩니다.\n\n{exportPath}",
             "Consult Note",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -1130,12 +1130,13 @@ public partial class MainWindow : Window
         builder.AppendLine($"상태: {customer.StatusText}");
         builder.AppendLine($"내보낸 시간: {DateTime.Now:yyyy-MM-dd HH:mm}");
         builder.AppendLine();
-        builder.AppendLine("상담 기록");
+        builder.AppendLine("상담 기록 (과거 → 최신)");
         builder.AppendLine("========================================");
 
         foreach (var log in customer.ConsultationLogs.OrderBy(log => log.CreatedAtText))
         {
             builder.AppendLine();
+            builder.AppendLine("----------------------------------------");
             builder.AppendLine($"[{log.CreatedAtText}]");
             builder.AppendLine(log.Content);
         }
