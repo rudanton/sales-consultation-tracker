@@ -67,6 +67,7 @@ public partial class AddCustomerFileDialog : Window
         string? customFileType = null,
         int? fileOrder = null,
         string? memo = null,
+        string? sourceFilePath = null,
         bool isEditMode = false)
     {
         InitializeComponent();
@@ -77,6 +78,7 @@ public partial class AddCustomerFileDialog : Window
         FileTypeComboBox.ItemsSource = _fileTypes;
         FileTypeComboBox.SelectedItem = fileType is not null && _fileTypes.Contains(fileType) ? fileType : null;
         FileTypeComboBox.Text = fileType ?? _fileTypes[0];
+        FilePathTextBox.Text = sourceFilePath ?? string.Empty;
         CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
         MemoTextBox.Text = memo ?? string.Empty;
         UpdateFileOrder();
@@ -106,6 +108,11 @@ public partial class AddCustomerFileDialog : Window
     public int FileOrder => int.TryParse(FileOrderTextBox.Text.Trim(), out var value) ? value : 1;
 
     public string? Memo => TrimToNull(MemoTextBox.Text);
+
+    public static bool IsSupportedFile(string filePath)
+    {
+        return SupportedExtensions.Contains(Path.GetExtension(filePath));
+    }
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e)
     {

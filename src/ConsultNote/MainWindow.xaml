@@ -824,7 +824,10 @@
                 <Border x:Name="SidebarPanel"
                         Style="{StaticResource Panel}"
                         Padding="14"
-                        Visibility="Collapsed">
+                        Visibility="Collapsed"
+                        AllowDrop="True"
+                        DragOver="CustomerFileDropArea_DragOver"
+                        Drop="CustomerFileDropArea_Drop">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   CanContentScroll="False">
@@ -849,6 +852,9 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="파일" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="파일을 이 영역에 드롭해서 추가할 수 있습니다."
+                                           Style="{StaticResource MutedText}"
+                                           Margin="0,-6,0,0" />
                             </StackPanel>
                             <Button Grid.Column="1"
                                     Content="추가"

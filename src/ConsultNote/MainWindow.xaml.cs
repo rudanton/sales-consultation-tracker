@@ -575,21 +575,76 @@ public partial class MainWindow : Window
 
     private void AddCustomerFileButton_Click(object sender, RoutedEventArgs e)
     {
+        AddCustomerFile(sourceFilePath: null);
+    }
+
+    private void CustomerFileDropArea_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = CanAcceptDroppedFiles(e) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void CustomerFileDropArea_Drop(object sender, DragEventArgs e)
+    {
+        if (!CanAcceptDroppedFiles(e))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var filePaths = ((string[])e.Data.GetData(DataFormats.FileDrop))
+            .Where(File.Exists)
+            .Where(AddCustomerFileDialog.IsSupportedFile)
+            .ToList();
+
+        foreach (var filePath in filePaths)
+        {
+            if (!AddCustomerFile(filePath))
+            {
+                break;
+            }
+        }
+
+        e.Handled = true;
+    }
+
+    private bool CanAcceptDroppedFiles(DragEventArgs e)
+    {
+        if (GetSelectedCustomer() is null || !e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return false;
+        }
+
+        var filePaths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        return filePaths?.Any(filePath => File.Exists(filePath) && AddCustomerFileDialog.IsSupportedFile(filePath)) == true;
+    }
+
+    private bool AddCustomerFile(string? sourceFilePath)
+    {
         var selectedCustomer = GetSelectedCustomer();
         if (selectedCustomer is null)
         {
             MessageBox.Show("파일을 추가할 고객을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
+            return false;
         }
 
-        var dialog = new AddCustomerFileDialog(GetOwnerType(), GetNextFileOrdersByType(selectedCustomer))
+        if (sourceFilePath is not null && !AddCustomerFileDialog.IsSupportedFile(sourceFilePath))
+        {
+            MessageBox.Show(".jpg, .jpeg, .png, .pdf 파일만 추가할 수 있습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return false;
+        }
+
+        var dialog = new AddCustomerFileDialog(
+            GetOwnerType(),
+            GetNextFileOrdersByType(selectedCustomer),
+            sourceFilePath: sourceFilePath)
         {
             Owner = this,
         };
 
         if (dialog.ShowDialog() != true)
         {
-            return;
+            return false;
         }
 
         var now = DateTime.Now;
@@ -619,7 +674,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"파일 복사 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
+            return false;
         }
 
         try
@@ -640,10 +695,12 @@ public partial class MainWindow : Window
 
             dbContext.SaveChanges();
             GetViewModel()?.ReloadCustomers(selectedCustomer.Id);
+            return true;
         }
         catch (Exception ex)
         {
             ShowDatabaseSaveError(ex);
+            return false;
         }
     }
 
