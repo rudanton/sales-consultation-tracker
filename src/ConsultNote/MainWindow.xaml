@@ -768,7 +768,20 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="상담 기록" Style="{StaticResource SectionTitle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="상담 기록" Style="{StaticResource SectionTitle}" />
+                                    <Button Grid.Column="1"
+                                            Content="전체 내보내기"
+                                            Style="{StaticResource ToolbarButton}"
+                                            Height="28"
+                                            MinHeight="28"
+                                            Padding="10,0"
+                                            Click="ConsultationHistoryExportButton_Click" />
+                                </Grid>
                                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>

@@ -213,6 +213,44 @@ public partial class MainWindow : Window
             MessageBoxImage.Information);
     }
 
+    private void ConsultationHistoryExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedCustomer = GetSelectedCustomer();
+        if (selectedCustomer is null)
+        {
+            MessageBox.Show("상담 기록을 내보낼 고객을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (selectedCustomer.ConsultationLogs.Count == 0)
+        {
+            MessageBox.Show("내보낼 상담 기록이 없습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var exportPath = string.Empty;
+        try
+        {
+            var exportDirectory = Path.Combine(AppPaths.LogsDirectory, "consultation-history");
+            Directory.CreateDirectory(exportDirectory);
+
+            var customerName = SanitizeFileName(selectedCustomer.Name);
+            exportPath = Path.Combine(exportDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}_{customerName}_상담기록.txt");
+            File.WriteAllText(exportPath, BuildConsultationHistoryExportText(selectedCustomer), Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"상담 기록 내보내기 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        MessageBox.Show(
+            $"상담 기록을 txt 파일로 저장했습니다.\n\n{exportPath}",
+            "Consult Note",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
     private void ConditionFormSaveButton_Click(object sender, RoutedEventArgs e)
     {
         var selectedCustomer = GetSelectedCustomer();
@@ -1081,6 +1119,28 @@ public partial class MainWindow : Window
             $"★특이사항 : {specialNote}",
             $"★상담내용 : {consultationContent}",
         });
+    }
+
+    private static string BuildConsultationHistoryExportText(CustomerItemViewModel customer)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"고객명: {customer.Name}");
+        builder.AppendLine($"연락처: {customer.PhoneNumber}");
+        builder.AppendLine($"차량: {customer.VehicleSummary}");
+        builder.AppendLine($"상태: {customer.StatusText}");
+        builder.AppendLine($"내보낸 시간: {DateTime.Now:yyyy-MM-dd HH:mm}");
+        builder.AppendLine();
+        builder.AppendLine("상담 기록");
+        builder.AppendLine("========================================");
+
+        foreach (var log in customer.ConsultationLogs.OrderBy(log => log.CreatedAtText))
+        {
+            builder.AppendLine();
+            builder.AppendLine($"[{log.CreatedAtText}]");
+            builder.AppendLine(log.Content);
+        }
+
+        return builder.ToString();
     }
 
     private void UpdateMileageCustomInput()
