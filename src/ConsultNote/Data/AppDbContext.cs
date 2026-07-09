@@ -2,6 +2,8 @@ using ConsultNote.Infrastructure;
 using ConsultNote.Data.Entities;
 using ConsultNote.Data.Seed;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.IO;
 
 namespace ConsultNote.Data;
 
@@ -23,6 +25,11 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        File.WriteAllText(
+    Path.Combine(AppContext.BaseDirectory, "db-path-debug.txt"),
+    AppPaths.DatabasePath
+);
+
         if (!optionsBuilder.IsConfigured)
         {
             optionsBuilder.UseSqlite($"Data Source={AppPaths.DatabasePath}");

@@ -2,14 +2,21 @@ using ConsultNote.Infrastructure;
 using System.IO;
 using System.Windows;
 
+using ConsultNote.Data;
+using Microsoft.EntityFrameworkCore;
 namespace ConsultNote;
+
+
 
 public partial class App : Application
 {
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        using var db = new AppDbContext();
+        db.Database.Migrate();
+        
         base.OnStartup(e);
-
         try
         {
             AppStartup.Initialize();
