@@ -146,6 +146,17 @@ public partial class MainWindow : Window
         GetViewModel()?.LoadVehicleOptions();
     }
 
+    private void VehicleResourceManagementButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new VehicleResourceManagementDialog
+        {
+            Owner = this,
+        };
+
+        dialog.ShowDialog();
+        RefreshReferenceEstimateList();
+    }
+
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -1245,13 +1256,13 @@ public partial class MainWindow : Window
         var vehicleName = GetSelectedVehicleNameForSearch() ?? TrimToNull(selectedCustomer?.VehicleName);
         if (selectedCustomer is null || string.IsNullOrWhiteSpace(vehicleName) || vehicleName == "-")
         {
-            ReferenceEstimateTitleTextBlock.Text = "같은 차량 견적";
+            ReferenceEstimateTitleTextBlock.Text = "같은 차량 자료";
             ReferenceEstimateListBox.ItemsSource = Array.Empty<FileItemViewModel>();
             return;
         }
 
         using var dbContext = new AppDbContext();
-        var estimates = dbContext.Customers
+        var customerEstimates = dbContext.Customers
             .Include(customer => customer.CustomerFiles)
             .AsNoTracking()
             .Where(customer => customer.Id != selectedCustomer.Id && customer.Status != CustomerStatus.Discarded)
@@ -1275,13 +1286,35 @@ public partial class MainWindow : Window
                     PreviewMeta = $"{customer.Name} · {file.CreatedAt:yyyy-MM-dd}",
                     PreviewLabel = file.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(file.FileType, file.CustomFileType),
                     CreatedAt = file.CreatedAt,
-                }))
-            .Take(8)
+                }));
+
+        var vehicleResources = dbContext.VehicleResourceFiles
+            .AsNoTracking()
+            .AsEnumerable()
+            .Where(file => string.Equals(TrimToNull(file.VehicleName), vehicleName, StringComparison.CurrentCultureIgnoreCase))
+            .Select(file => new FileItemViewModel
+            {
+                Id = file.Id,
+                FileName = file.DisplayName,
+                FilePath = file.FilePath,
+                FileType = GetDisplayFileType(file.FileType, file.CustomFileType),
+                FileOrder = file.FileOrder,
+                Summary = $"공용 자료 · {file.CreatedAt:yyyy-MM-dd}",
+                PreviewTitle = file.DisplayName,
+                PreviewMeta = $"공용 자료 · {file.CreatedAt:yyyy-MM-dd}",
+                PreviewLabel = file.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(file.FileType, file.CustomFileType),
+                CreatedAt = file.CreatedAt,
+            });
+
+        var estimates = customerEstimates
+            .Concat(vehicleResources)
+            .OrderByDescending(file => file.CreatedAt)
+            .Take(10)
             .ToList();
 
         ReferenceEstimateTitleTextBlock.Text = estimates.Count == 0
-            ? $"같은 차량 견적 없음 · {vehicleName}"
-            : $"같은 차량 견적 {estimates.Count}건 · {vehicleName}";
+            ? $"같은 차량 자료 없음 · {vehicleName}"
+            : $"같은 차량 자료 {estimates.Count}건 · {vehicleName}";
         ReferenceEstimateListBox.ItemsSource = estimates;
     }
 

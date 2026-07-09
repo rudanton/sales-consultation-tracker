@@ -299,6 +299,10 @@
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleManagementButton_Click" />
+                    <Button Content="차량 자료"
+                            Style="{StaticResource ToolbarButton}"
+                            Margin="0,0,8,0"
+                            Click="VehicleResourceManagementButton_Click" />
                     <Button Content="업데이트 확인"
                             Style="{StaticResource ToolbarButton}"
                             Click="CheckUpdateButton_Click" />

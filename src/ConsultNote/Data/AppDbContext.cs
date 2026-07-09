@@ -17,6 +17,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<CustomerFile> CustomerFiles => Set<CustomerFile>();
 
+    public DbSet<VehicleResourceFile> VehicleResourceFiles => Set<VehicleResourceFile>();
+
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -121,6 +123,50 @@ public sealed class AppDbContext : DbContext
 
             entity.HasIndex(customerFile => customerFile.DisplayName);
             entity.HasIndex(customerFile => customerFile.FileType);
+        });
+
+        modelBuilder.Entity<VehicleResourceFile>(entity =>
+        {
+            entity.Property(file => file.OriginalFileName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(file => file.StoredFileName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(file => file.DisplayName)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(file => file.FilePath)
+                .IsRequired();
+
+            entity.Property(file => file.FileType)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(file => file.CustomFileType)
+                .HasMaxLength(80);
+
+            entity.Property(file => file.FileOrder)
+                .HasDefaultValue(1)
+                .IsRequired();
+
+            entity.Property(file => file.VehicleBrand)
+                .HasMaxLength(80);
+
+            entity.Property(file => file.VehicleName)
+                .HasMaxLength(120);
+
+            entity.Property(file => file.FuelType)
+                .HasMaxLength(80);
+
+            entity.Property(file => file.CreatedAt).IsRequired();
+
+            entity.HasIndex(file => file.DisplayName);
+            entity.HasIndex(file => file.FileType);
+            entity.HasIndex(file => file.VehicleName);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

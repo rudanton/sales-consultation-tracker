@@ -16,6 +16,7 @@ public static class AppStartup
     {
         Directory.CreateDirectory(AppPaths.StorageDirectory);
         Directory.CreateDirectory(AppPaths.CustomersDirectory);
+        Directory.CreateDirectory(AppPaths.VehicleResourcesDirectory);
         Directory.CreateDirectory(AppPaths.BackupDirectory);
         Directory.CreateDirectory(AppPaths.LogsDirectory);
         Directory.CreateDirectory(AppPaths.SettingsDirectory);
