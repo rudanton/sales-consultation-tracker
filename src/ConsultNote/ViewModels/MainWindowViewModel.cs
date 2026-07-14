@@ -287,6 +287,8 @@ public sealed class MainWindowViewModel : ObservableObject
             .Include(customer => customer.Estimates)
             .Include(customer => customer.Attachments)
             .Include(customer => customer.CustomerFiles)
+                .ThenInclude(file => file.VehicleResourceLinks)
+                    .ThenInclude(link => link.VehicleResourceFile)
             .AsNoTracking()
             .ToList();
 
@@ -613,17 +615,20 @@ public sealed class MainWindowViewModel : ObservableObject
             .ThenBy(file => file.FileOrder)
             .ThenByDescending(file => file.CreatedAt))
         {
+            var displayFileType = GetDisplayFileType(customerFile);
+            var fileSummary = FormatCustomerFileSummary(customerFile, customer);
+
             viewModel.Files.Add(new FileItemViewModel
             {
                 Id = customerFile.Id,
                 FileName = customerFile.DisplayName,
                 FilePath = customerFile.FilePath,
-                FileType = GetDisplayFileType(customerFile),
+                FileType = displayFileType,
                 FileOrder = customerFile.FileOrder,
-                Summary = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
+                Summary = fileSummary,
                 PreviewTitle = customerFile.DisplayName,
-                PreviewMeta = $"{GetDisplayFileType(customerFile)} · {customerFile.CreatedAt:yyyy-MM-dd}",
-                PreviewLabel = customerFile.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(customerFile),
+                PreviewMeta = fileSummary,
+                PreviewLabel = customerFile.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : displayFileType,
                 CreatedAt = customerFile.CreatedAt,
             });
         }
@@ -716,6 +721,55 @@ public sealed class MainWindowViewModel : ObservableObject
         return string.IsNullOrWhiteSpace(fuelType)
             ? name
             : $"{name}({fuelType})";
+    }
+
+    private static string FormatCustomerFileSummary(CustomerFile customerFile, Customer customer)
+    {
+        var displayFileType = GetDisplayFileType(customerFile);
+        var parts = new List<string> { displayFileType };
+
+        if (displayFileType == "견적")
+        {
+            var vehicleSummary = FormatEstimateFileVehicleSummary(customerFile, customer);
+            if (!string.IsNullOrWhiteSpace(vehicleSummary))
+            {
+                parts.Add(vehicleSummary);
+            }
+        }
+
+        parts.Add(customerFile.CreatedAt.ToString("yyyy-MM-dd"));
+        return string.Join(" · ", parts);
+    }
+
+    private static string FormatEstimateFileVehicleSummary(CustomerFile customerFile, Customer customer)
+    {
+        var resource = customerFile.VehicleResourceLinks
+            .Select(link => link.VehicleResourceFile)
+            .FirstOrDefault(file => file is not null);
+        var brand = TrimToNull(resource?.VehicleBrand);
+        var vehicleName = TrimToNull(resource?.VehicleName)
+            ?? TrimToNull(customer.FormVehicleName)
+            ?? TrimToNull(customer.VehicleName);
+        var fuelType = TrimToNull(resource?.FuelType) ?? TrimToNull(customer.FormFuelType);
+        var rentalCompany = TrimToNull(resource?.RentalCompany) ?? TrimToNull(resource?.CapitalCompany);
+
+        var vehicleSummary = FormatEstimateVehicleText(brand, vehicleName, fuelType);
+        return string.Join(" · ", new[] { vehicleSummary, rentalCompany }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
+
+    private static string FormatEstimateVehicleText(string? brand, string? vehicleName, string? fuelType)
+    {
+        var vehicleText = string.Join(" ", new[] { brand, vehicleName }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+        if (string.IsNullOrWhiteSpace(vehicleText))
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(fuelType)
+            ? vehicleText
+            : $"{vehicleText}({fuelType})";
     }
 
     private static string GetDisplayFileType(CustomerFile customerFile)

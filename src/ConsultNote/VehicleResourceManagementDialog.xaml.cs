@@ -206,6 +206,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
                 VehicleBrand = dialog.VehicleBrand,
                 VehicleName = dialog.VehicleName,
                 FuelType = dialog.FuelType,
+                CapitalCompany = null,
+                RentalCompany = dialog.RentalCompany,
                 Memo = dialog.Memo,
                 CreatedAt = now,
             };
@@ -245,6 +247,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             resource.VehicleBrand,
             resource.VehicleName,
             resource.FuelType,
+            resource.CapitalCompany,
+            resource.RentalCompany,
             resource.Memo,
             isEditMode: true)
         {
@@ -268,6 +272,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         resource.VehicleBrand = dialog.VehicleBrand;
         resource.VehicleName = dialog.VehicleName;
         resource.FuelType = dialog.FuelType;
+        resource.CapitalCompany = null;
+        resource.RentalCompany = dialog.RentalCompany;
         resource.Memo = dialog.Memo;
         resource.DisplayName = BuildDisplayName(dialog.VehicleName, dialog.FileType, dialog.CustomFileType, fileOrder);
 
@@ -345,7 +351,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     private static VehicleResourceFileItemViewModel ToViewModel(VehicleResourceFile file)
     {
         var displayFileType = GetDisplayFileType(file.FileType, file.CustomFileType);
-        var vehicleSummary = string.Join(" · ", new[] { file.VehicleBrand, file.VehicleName, file.FuelType }
+        var rentalCompany = string.IsNullOrWhiteSpace(file.RentalCompany) ? file.CapitalCompany : file.RentalCompany;
+        var vehicleSummary = string.Join(" · ", new[] { file.VehicleBrand, file.VehicleName, file.FuelType, rentalCompany }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
         return new VehicleResourceFileItemViewModel
         {

@@ -29,6 +29,8 @@ public partial class AddVehicleResourceFileDialog : Window
         string? vehicleBrand = null,
         string? vehicleName = null,
         string? fuelType = null,
+        string? capitalCompany = null,
+        string? rentalCompany = null,
         string? memo = null,
         string? sourceFilePath = null,
         bool isEditMode = false)
@@ -44,6 +46,7 @@ public partial class AddVehicleResourceFileDialog : Window
         CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
         FilePathTextBox.Text = sourceFilePath ?? string.Empty;
         MemoTextBox.Text = memo ?? string.Empty;
+        RentalCompanyTextBox.Text = rentalCompany ?? capitalCompany ?? string.Empty;
 
         LoadVehicleOptions(vehicleBrand, vehicleName, fuelType);
         UpdateFileOrder();
@@ -77,6 +80,10 @@ public partial class AddVehicleResourceFileDialog : Window
     public string? VehicleName => TrimToNull(VehicleNameComboBox.Text);
 
     public string? FuelType => TrimToNull(FuelTypeComboBox.Text);
+
+    public string? CapitalCompany => null;
+
+    public string? RentalCompany => TrimToNull(RentalCompanyTextBox.Text);
 
     public string? Memo => TrimToNull(MemoTextBox.Text);
 
@@ -201,6 +208,15 @@ public partial class AddVehicleResourceFileDialog : Window
         using var dbContext = new AppDbContext();
         var selectedBrand = TrimToNull(VehicleBrandComboBox.Text);
         var selectedVehicleName = TrimToNull(VehicleNameComboBox.Text);
+        if (selectedBrand is null && selectedVehicleName is not null)
+        {
+            selectedBrand = TryInferBrand(dbContext, selectedVehicleName);
+            if (selectedBrand is not null)
+            {
+                VehicleBrandComboBox.Text = selectedBrand;
+            }
+        }
+
         var fuelTypes = dbContext.Vehicles
             .AsNoTracking()
             .Where(vehicle => vehicle.IsActive)
@@ -237,6 +253,18 @@ public partial class AddVehicleResourceFileDialog : Window
         return string.IsNullOrWhiteSpace(fuelTypes)
             ? []
             : fuelTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static string? TryInferBrand(AppDbContext dbContext, string vehicleName)
+    {
+        var brands = dbContext.Vehicles
+            .AsNoTracking()
+            .Where(vehicle => vehicle.IsActive && vehicle.Name == vehicleName && vehicle.Brand != null)
+            .Select(vehicle => vehicle.Brand!)
+            .Distinct()
+            .ToList();
+
+        return brands.Count == 1 ? brands[0] : null;
     }
 
     private static string? TrimToNull(string? value)

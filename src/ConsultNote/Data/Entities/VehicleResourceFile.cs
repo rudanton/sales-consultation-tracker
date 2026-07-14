@@ -24,6 +24,10 @@ public sealed class VehicleResourceFile
 
     public string? FuelType { get; set; }
 
+    public string? CapitalCompany { get; set; }
+
+    public string? RentalCompany { get; set; }
+
     public string? Memo { get; set; }
 
     public DateTime CreatedAt { get; set; }

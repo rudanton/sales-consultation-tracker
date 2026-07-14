@@ -23,6 +23,8 @@ namespace ConsultNote.Data.Migrations
                     "VehicleBrand" TEXT NULL,
                     "VehicleName" TEXT NULL,
                     "FuelType" TEXT NULL,
+                    "CapitalCompany" TEXT NULL,
+                    "RentalCompany" TEXT NULL,
                     "Memo" TEXT NULL,
                     "CreatedAt" TEXT NOT NULL
                 );

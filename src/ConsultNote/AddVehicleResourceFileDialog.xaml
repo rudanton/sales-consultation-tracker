@@ -94,6 +94,11 @@
                               IsTextSearchEnabled="True" />
                 </Grid>
 
+                <TextBlock Text="렌트사" Style="{StaticResource MutedText}" />
+                <TextBox x:Name="RentalCompanyTextBox"
+                         Padding="8,5"
+                         Margin="0,5,0,10" />
+
                 <TextBlock Text="자료 유형" Style="{StaticResource MutedText}" />
                 <ComboBox x:Name="FileTypeComboBox"
                           Margin="0,5,0,10"

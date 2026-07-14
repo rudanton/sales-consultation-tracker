@@ -343,6 +343,10 @@ namespace ConsultNote.Data.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CapitalCompany")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(260)
@@ -372,6 +376,10 @@ namespace ConsultNote.Data.Migrations
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RentalCompany")
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("StoredFileName")

@@ -172,6 +172,12 @@ public sealed class AppDbContext : DbContext
             entity.Property(file => file.FuelType)
                 .HasMaxLength(80);
 
+            entity.Property(file => file.CapitalCompany)
+                .HasMaxLength(120);
+
+            entity.Property(file => file.RentalCompany)
+                .HasMaxLength(120);
+
             entity.Property(file => file.CreatedAt).IsRequired();
 
             entity.HasIndex(file => file.DisplayName);

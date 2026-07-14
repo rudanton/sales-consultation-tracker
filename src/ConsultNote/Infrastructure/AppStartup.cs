@@ -120,6 +120,8 @@ public static class AppStartup
         EnsureColumn(dbContext, "VehicleResourceFiles", "VehicleBrand", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "VehicleName", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "FuelType", "TEXT NULL");
+        EnsureColumn(dbContext, "VehicleResourceFiles", "CapitalCompany", "TEXT NULL");
+        EnsureColumn(dbContext, "VehicleResourceFiles", "RentalCompany", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "Memo", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "CreatedAt", "TEXT NOT NULL DEFAULT '2026-07-07 00:00:00'");
     }

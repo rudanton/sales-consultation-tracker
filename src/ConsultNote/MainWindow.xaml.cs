@@ -756,6 +756,9 @@ public partial class MainWindow : Window
         var dialog = new AddCustomerFileDialog(
             GetOwnerType(),
             GetNextFileOrdersByType(selectedCustomer),
+            vehicleBrand: GetSelectedText(VehicleBrandComboBox),
+            vehicleName: TrimToNull(GetSelectedText(VehicleNameComboBox)) ?? TrimToNull(selectedCustomer.VehicleName),
+            fuelType: GetSelectedText(FuelTypeComboBox),
             sourceFilePath: sourceFilePath)
         {
             Owner = this,
@@ -818,7 +821,11 @@ public partial class MainWindow : Window
                 selectedCustomer.Id,
                 selectedCustomer.Name,
                 customerFile,
-                selectedCustomer.VehicleName,
+                dialog.VehicleBrand,
+                dialog.VehicleName,
+                dialog.FuelType,
+                capitalCompany: null,
+                dialog.RentalCompany,
                 now);
 
             dbContext.SaveChanges();
@@ -987,6 +994,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        var linkedVehicleResource = dbContext.CustomerVehicleResourceLinks
+            .Include(link => link.VehicleResourceFile)
+            .AsNoTracking()
+            .Where(link => link.CustomerFileId == customerFile.Id)
+            .Select(link => link.VehicleResourceFile)
+            .FirstOrDefault();
+
         var dialog = new AddCustomerFileDialog(
             GetOwnerType(),
             GetNextFileOrdersByType(selectedCustomer),
@@ -994,6 +1008,11 @@ public partial class MainWindow : Window
             customerFile.CustomFileType,
             customerFile.FileOrder,
             customerFile.Memo,
+            linkedVehicleResource?.VehicleBrand ?? GetSelectedText(VehicleBrandComboBox),
+            linkedVehicleResource?.VehicleName ?? GetSelectedText(VehicleNameComboBox),
+            linkedVehicleResource?.FuelType ?? GetSelectedText(FuelTypeComboBox),
+            capitalCompany: null,
+            linkedVehicleResource?.RentalCompany ?? linkedVehicleResource?.CapitalCompany,
             isEditMode: true)
         {
             Owner = this,
@@ -1024,7 +1043,11 @@ public partial class MainWindow : Window
             selectedCustomer.Id,
             selectedCustomer.Name,
             customerFile,
-            selectedCustomer.VehicleName,
+            dialog.VehicleBrand,
+            dialog.VehicleName,
+            dialog.FuelType,
+            capitalCompany: null,
+            dialog.RentalCompany,
             DateTime.Now);
 
         try
@@ -1518,12 +1541,26 @@ public partial class MainWindow : Window
         int customerId,
         string customerName,
         CustomerFile customerFile,
-        string? customerVehicleName,
+        string? vehicleBrand,
+        string? vehicleName,
+        string? fuelType,
+        string? capitalCompany,
+        string? rentalCompany,
         DateTime now)
     {
         if (IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
         {
-            LinkEstimateFileToVehicleResource(dbContext, customerId, customerName, customerFile, customerVehicleName, now);
+            LinkEstimateFileToVehicleResource(
+                dbContext,
+                customerId,
+                customerName,
+                customerFile,
+                vehicleBrand,
+                vehicleName,
+                fuelType,
+                capitalCompany,
+                rentalCompany,
+                now);
             return;
         }
 
@@ -1535,7 +1572,11 @@ public partial class MainWindow : Window
         int customerId,
         string customerName,
         CustomerFile customerFile,
-        string? customerVehicleName,
+        string? vehicleBrand,
+        string? vehicleName,
+        string? fuelType,
+        string? capitalCompany,
+        string? rentalCompany,
         DateTime now)
     {
         if (!IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
@@ -1547,9 +1588,11 @@ public partial class MainWindow : Window
             .Include(link => link.VehicleResourceFile)
             .FirstOrDefault(link => link.CustomerFileId == customerFile.Id);
 
-        var vehicleName = GetSelectedVehicleNameForSearch() ?? TrimToNull(customerVehicleName);
-        var vehicleBrand = TrimToNull(GetSelectedText(VehicleBrandComboBox));
-        var fuelType = TrimToNull(GetSelectedText(FuelTypeComboBox));
+        vehicleBrand = TrimToNull(vehicleBrand);
+        vehicleName = TrimToNull(vehicleName);
+        fuelType = TrimToNull(fuelType);
+        capitalCompany = null;
+        rentalCompany = TrimToNull(rentalCompany);
         var fileOrder = existingLink?.VehicleResourceFile?.FileOrder
             ?? GetNextVehicleResourceFileOrder(dbContext, customerFile.FileType, customerFile.CustomFileType);
         var displayName = BuildVehicleResourceDisplayName(vehicleName, customerFile.FileType, customerFile.CustomFileType, fileOrder);
@@ -1569,6 +1612,8 @@ public partial class MainWindow : Window
         resource.VehicleBrand = vehicleBrand;
         resource.VehicleName = vehicleName;
         resource.FuelType = fuelType;
+        resource.CapitalCompany = capitalCompany;
+        resource.RentalCompany = rentalCompany;
         resource.Memo = customerFile.Memo;
 
         if (existingLink is null)
