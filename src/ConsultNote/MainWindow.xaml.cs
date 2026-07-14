@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private int? _editingConsultationLogId;
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
+    private bool _closeToTrayOnClose = true;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
@@ -40,6 +41,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         ApplySidebarState();
         ApplyAppVersion();
+        UpdateCloseToTrayToggle();
         InitializeTrayIcon();
         EnsureFileListOptions();
         UpdateMileageCustomInput();
@@ -54,6 +56,25 @@ public partial class MainWindow : Window
         AppVersionTextBlock.Text = version is null
             ? string.Empty
             : $"v{version.Major}.{version.Minor}.{version.Build}";
+    }
+
+    private void CloseToTrayToggleButton_Changed(object sender, RoutedEventArgs e)
+    {
+        _closeToTrayOnClose = CloseToTrayToggleButton.IsChecked == true;
+        UpdateCloseToTrayToggle();
+    }
+
+    private void UpdateCloseToTrayToggle()
+    {
+        if (CloseToTrayToggleButton is null)
+        {
+            return;
+        }
+
+        CloseToTrayToggleButton.Content = _closeToTrayOnClose ? "트레이 켬" : "트레이 끔";
+        CloseToTrayToggleButton.ToolTip = _closeToTrayOnClose
+            ? "닫기 버튼을 누르면 트레이로 이동합니다."
+            : "닫기 버튼을 누르면 앱을 종료합니다.";
     }
 
     private static Version GetCurrentAppVersion()
@@ -81,7 +102,7 @@ public partial class MainWindow : Window
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
         WindowPlacementStore.Save(this);
-        if (_isClosingForExit)
+        if (_isClosingForExit || !_closeToTrayOnClose)
         {
             DisposeTrayIcon();
             return;
