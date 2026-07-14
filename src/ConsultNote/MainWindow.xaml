@@ -8,15 +8,15 @@
         Width="1440"
         Icon="Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen"
-        Background="#F2F1EE"
+        Background="#EDECE8"
         FontFamily="Segoe UI, Malgun Gothic">
     <Window.Resources>
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D5D2CC" />
-        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FAFAF8" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0CDC7" />
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F6F5F1" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#6F6A61" />
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#24211D" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
-        <SolidColorBrush x:Key="SoftAccentBrush" Color="#E3E0DA" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#3A6282" />
+        <SolidColorBrush x:Key="SoftAccentBrush" Color="#DDDAD3" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
@@ -44,8 +44,8 @@
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#D4D1CB" />
-            <Setter Property="Background" Value="#F8F7F4" />
+            <Setter Property="BorderBrush" Value="#D0CDC7" />
+            <Setter Property="Background" Value="#F2F1ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
@@ -60,8 +60,8 @@
         <Style x:Key="ProminentToggleButton" TargetType="ToggleButton">
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#D4D1CB" />
-            <Setter Property="Background" Value="#F8F7F4" />
+            <Setter Property="BorderBrush" Value="#D0CDC7" />
+            <Setter Property="Background" Value="#F2F1ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -79,21 +79,21 @@
             <Setter Property="Height" Value="28" />
             <Setter Property="MinHeight" Value="28" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="#93C5FD" />
-            <Setter Property="Background" Value="#EFF6FF" />
-            <Setter Property="Foreground" Value="#2563EB" />
+            <Setter Property="BorderBrush" Value="#BFC9D3" />
+            <Setter Property="Background" Value="#F2F4F5" />
+            <Setter Property="Foreground" Value="#3A6282" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="Bold" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="#60A5FA" />
-                    <Setter Property="Background" Value="#DBEAFE" />
+                    <Setter Property="BorderBrush" Value="#AEBCC8" />
+                    <Setter Property="Background" Value="#E9EEF2" />
                 </Trigger>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="BorderBrush" Value="#D97706" />
-                    <Setter Property="Background" Value="#FEF3C7" />
-                    <Setter Property="Foreground" Value="#B45309" />
+                    <Setter Property="BorderBrush" Value="#C7AD7B" />
+                    <Setter Property="Background" Value="#EFE6D2" />
+                    <Setter Property="Foreground" Value="#8A5A16" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -103,8 +103,8 @@
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="#D4D1CB" />
-            <Setter Property="Background" Value="#F8F7F4" />
+            <Setter Property="BorderBrush" Value="#D0CDC7" />
+            <Setter Property="Background" Value="#F2F1ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="16" />
@@ -134,7 +134,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#E3E0DA" />
+                    <Setter Property="Background" Value="#DDDAD3" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -151,12 +151,12 @@
                     Padding="12">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="#FAFAF8" />
-                        <Setter Property="BorderBrush" Value="#D9D6D0" />
+                        <Setter Property="Background" Value="#F6F5F1" />
+                        <Setter Property="BorderBrush" Value="#D5D2CC" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter Property="Background" Value="#E5E1DA" />
-                                <Setter Property="BorderBrush" Value="#B8B0A5" />
+                                <Setter Property="Background" Value="#E0DDD6" />
+                                <Setter Property="BorderBrush" Value="#B4ADA3" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -169,7 +169,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="★"
-                                       Foreground="#F59E0B"
+                                       Foreground="#C47A19"
                                        FontWeight="Bold"
                                        Margin="0,0,5,0">
                                 <TextBlock.Style>
@@ -206,7 +206,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConsultationLogTemplate">
-            <Border BorderBrush="#D9D6D0"
+            <Border BorderBrush="#D5D2CC"
                     BorderThickness="0,0,0,1"
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
@@ -249,8 +249,8 @@
         </DataTemplate>
 
         <DataTemplate x:Key="FileTemplate">
-            <Border Background="#FAFAF8"
-                    BorderBrush="#D9D6D0"
+            <Border Background="#F6F5F1"
+                    BorderBrush="#D5D2CC"
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="10">
@@ -347,8 +347,8 @@
 
                 <Border Grid.Row="1"
                         Grid.ColumnSpan="3"
-                        Background="#F7F6F3"
-                        BorderBrush="#D9D6D0"
+                        Background="#F2F1ED"
+                        BorderBrush="#D5D2CC"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="10,7"
@@ -513,8 +513,8 @@
 
                     <Border x:Name="BasicInfoPanel"
                             Grid.Row="1"
-                            Background="#F7F6F3"
-                            BorderBrush="#D9D6D0"
+                            Background="#F2F1ED"
+                            BorderBrush="#D5D2CC"
                             BorderThickness="1"
                             CornerRadius="6"
                             Padding="12"
@@ -560,8 +560,8 @@
 
                         <Border x:Name="ConditionFormPanel"
                                 Grid.Column="0"
-                                Background="#F8F7F4"
-                                BorderBrush="#D9D6D0"
+                                Background="#F2F1ED"
+                                BorderBrush="#D5D2CC"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="10,8">
@@ -828,8 +828,8 @@
                         </Border>
 
                         <Border Grid.Column="2"
-                                Background="#FAFAF8"
-                                BorderBrush="#D9D6D0"
+                                Background="#F6F5F1"
+                                BorderBrush="#D5D2CC"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="14">
@@ -979,8 +979,8 @@
                         </Grid>
 
                         <Border Grid.Row="1"
-                                Background="#F7F6F3"
-                                BorderBrush="#D4D1CB"
+                                Background="#F2F1ED"
+                                BorderBrush="#D0CDC7"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="12">
@@ -989,8 +989,8 @@
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <Border Background="#DBEAFE"
-                                        BorderBrush="#93C5FD"
+                                <Border Background="#E7EDF1"
+                                        BorderBrush="#B8C4CE"
                                         BorderThickness="1"
                                         CornerRadius="4"
                                         MouseLeftButtonDown="SelectedFilePreview_MouseLeftButtonDown">
@@ -1002,7 +1002,7 @@
                                                    Text="{Binding SelectedFile.PreviewLabel}"
                                                    FontSize="22"
                                                    FontWeight="Bold"
-                                                   Foreground="#1D4ED8"
+                                                   Foreground="#365E7A"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center" />
                                     </Grid>
