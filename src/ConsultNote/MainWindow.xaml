@@ -8,27 +8,11 @@
         Width="1440"
         Icon="Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource WindowBackgroundBrush}"
+        Background="{StaticResource AppBackgroundBrush}"
         FontFamily="Segoe UI, Malgun Gothic">
     <Window.Resources>
-        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#EDECE8" />
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0CDC7" />
-        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F6F5F1" />
-        <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#F2F1ED" />
-        <SolidColorBrush x:Key="ToolbarBorderBrush" Color="#D0CDC7" />
-        <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#F2F1ED" />
-        <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#E0DDD6" />
-        <SolidColorBrush x:Key="SelectedBorderBrush" Color="#B4ADA3" />
-        <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#E7EDF1" />
-        <SolidColorBrush x:Key="PreviewBorderBrush" Color="#B8C4CE" />
-        <SolidColorBrush x:Key="PreviewTextBrush" Color="#365E7A" />
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#6F6A61" />
-        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#24211D" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#3A6282" />
-        <SolidColorBrush x:Key="SoftAccentBrush" Color="#DDDAD3" />
-
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
@@ -39,13 +23,13 @@
         </Style>
 
         <Style x:Key="MutedText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="12" />
         </Style>
 
         <Style x:Key="Panel" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="6" />
         </Style>
@@ -53,32 +37,32 @@
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderBrush}" />
-            <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
 
         <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource ControlFocusBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
         <Style x:Key="ProminentToggleButton" TargetType="ToggleButton">
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderBrush}" />
-            <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
-                    <Setter Property="Foreground" Value="#FFFFFF" />
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource ControlFocusBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -88,21 +72,21 @@
             <Setter Property="Height" Value="28" />
             <Setter Property="MinHeight" Value="28" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="#BFC9D3" />
-            <Setter Property="Background" Value="#F2F4F5" />
-            <Setter Property="Foreground" Value="#3A6282" />
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="Bold" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="#AEBCC8" />
-                    <Setter Property="Background" Value="#E9EEF2" />
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+                    <Setter Property="Background" Value="{StaticResource ControlFocusBrush}" />
                 </Trigger>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="BorderBrush" Value="#C7AD7B" />
-                    <Setter Property="Background" Value="#EFE6D2" />
-                    <Setter Property="Foreground" Value="#8A5A16" />
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource SelectionTextBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -112,9 +96,9 @@
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderBrush}" />
-            <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -143,7 +127,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource SoftAccentBrush}" />
+                    <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -160,12 +144,12 @@
                     Padding="12">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
-                        <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
+                        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource SelectedBackgroundBrush}" />
-                                <Setter Property="BorderBrush" Value="{DynamicResource SelectedBorderBrush}" />
+                                <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -178,7 +162,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="★"
-                                       Foreground="#C47A19"
+                                       Foreground="{StaticResource AccentBrush}"
                                        FontWeight="Bold"
                                        Margin="0,0,5,0">
                                 <TextBlock.Style>
@@ -215,7 +199,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConsultationLogTemplate">
-            <Border BorderBrush="{DynamicResource PanelBorderBrush}"
+            <Border BorderBrush="{StaticResource ThemeBorderBrush}"
                     BorderThickness="0,0,0,1"
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
@@ -258,8 +242,8 @@
         </DataTemplate>
 
         <DataTemplate x:Key="FileTemplate">
-            <Border Background="{DynamicResource PanelBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelBorderBrush}"
+            <Border Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource ThemeBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="10">
@@ -317,7 +301,7 @@
                              Padding="12,8"
                              FontSize="14"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Foreground="#34302A" />
+                             Foreground="{StaticResource TextPrimaryBrush}" />
                     <Button Grid.Column="2"
                             Content="초기화"
                             Style="{StaticResource ToolbarButton}"
@@ -340,10 +324,6 @@
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleResourceManagementButton_Click" />
-                    <Button Content="톤 조정"
-                            Style="{StaticResource ToolbarButton}"
-                            Margin="0,0,8,0"
-                            Click="ThemeToneButton_Click" />
                     <ToggleButton x:Name="CloseToTrayToggleButton"
                                   Content="트레이 켬"
                                   Style="{StaticResource ProminentToggleButton}"
@@ -360,8 +340,8 @@
 
                 <Border Grid.Row="1"
                         Grid.ColumnSpan="3"
-                        Background="{DynamicResource SurfaceBackgroundBrush}"
-                        BorderBrush="{DynamicResource PanelBorderBrush}"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource ThemeBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="10,7"
@@ -463,12 +443,12 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding SelectedCustomer.Name}" FontSize="24" FontWeight="Bold" />
                                 <TextBlock Text="{Binding SelectedCustomer.StatusText}"
-                                           Foreground="{StaticResource MutedTextBrush}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
                                            FontSize="14"
                                            Margin="10,9,0,0" />
                             </StackPanel>
                             <TextBlock Text="{Binding SelectedCustomer.HeaderDetail}"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
                                        Margin="0,4,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Column="1"
@@ -526,8 +506,8 @@
 
                     <Border x:Name="BasicInfoPanel"
                             Grid.Row="1"
-                            Background="{DynamicResource SurfaceBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelBorderBrush}"
+                            Background="{StaticResource CardBackgroundBrush}"
+                            BorderBrush="{StaticResource ThemeBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="6"
                             Padding="12"
@@ -573,8 +553,8 @@
 
                         <Border x:Name="ConditionFormPanel"
                                 Grid.Column="0"
-                                Background="{DynamicResource ToolbarBackgroundBrush}"
-                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                BorderBrush="{StaticResource ThemeBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="10,8">
@@ -634,7 +614,7 @@
                                                     <TextBox x:Name="VehicleDetailTextBox"
                                                              Text="상세 옵션"
                                                              Padding="8,3"
-                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"
                                                              Margin="0,2,0,0"
                                                              GotFocus="PlaceholderTextBox_GotFocus"
                                                              LostFocus="PlaceholderTextBox_LostFocus" />
@@ -677,7 +657,7 @@
                                                              Text=""
                                                              IsEnabled="False"
                                                              Padding="8,3"
-                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"
                                                              ToolTip="직접입력 선택 시 0~5 사이, 소수점 1자리까지 입력"
                                                              GotFocus="MileageCustomTextBox_GotFocus"
                                                              LostFocus="MileageCustomTextBox_LostFocus" />
@@ -708,7 +688,7 @@
                                                              Grid.Column="2"
                                                              Text="상세 지역"
                                                              Padding="8,3"
-                                                             Foreground="{StaticResource MutedTextBrush}"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"
                                                              GotFocus="PlaceholderTextBox_GotFocus"
                                                              LostFocus="PlaceholderTextBox_LostFocus" />
                                                 </Grid>
@@ -841,8 +821,8 @@
                         </Border>
 
                         <Border Grid.Column="2"
-                                Background="{DynamicResource PanelBackgroundBrush}"
-                                BorderBrush="{DynamicResource PanelBorderBrush}"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                BorderBrush="{StaticResource ThemeBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="14">
@@ -992,8 +972,8 @@
                         </Grid>
 
                         <Border Grid.Row="1"
-                                Background="{DynamicResource SurfaceBackgroundBrush}"
-                                BorderBrush="{DynamicResource ToolbarBorderBrush}"
+                                Background="{StaticResource CardBackgroundBrush}"
+                                BorderBrush="{StaticResource ThemeBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="12">
@@ -1002,8 +982,8 @@
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <Border Background="{DynamicResource PreviewBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PreviewBorderBrush}"
+                                <Border Background="{StaticResource SelectionBackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderStrongBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"
                                         MouseLeftButtonDown="SelectedFilePreview_MouseLeftButtonDown">
@@ -1015,7 +995,7 @@
                                                    Text="{Binding SelectedFile.PreviewLabel}"
                                                    FontSize="22"
                                                    FontWeight="Bold"
-                                                   Foreground="{DynamicResource PreviewTextBrush}"
+                                                   Foreground="{StaticResource AccentBrush}"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center" />
                                     </Grid>

@@ -13,7 +13,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -32,14 +31,11 @@ public partial class MainWindow : Window
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
     private bool _closeToTrayOnClose = true;
-    private AppThemeSettings _themeSettings = AppThemeSettings.Default();
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
     {
         InitializeComponent();
-        _themeSettings = AppThemeSettings.Load();
-        ApplyThemeSettings(_themeSettings);
         var viewModel = new MainWindowViewModel();
         viewModel.PropertyChanged += MainWindowViewModel_PropertyChanged;
         DataContext = viewModel;
@@ -61,64 +57,6 @@ public partial class MainWindow : Window
             ? string.Empty
             : $"v{version.Major}.{version.Minor}.{version.Build}";
     }
-
-    private void ThemeToneButton_Click(object sender, RoutedEventArgs e)
-    {
-        var originalSettings = _themeSettings.Clone();
-        var dialog = new ThemeToneDialog(_themeSettings)
-        {
-            Owner = this,
-        };
-
-        dialog.PreviewChanged += ApplyThemeSettings;
-        var result = dialog.ShowDialog();
-        if (result == true)
-        {
-            _themeSettings = dialog.Settings.Clone().Clamp();
-            _themeSettings.Save();
-            ApplyThemeSettings(_themeSettings);
-            return;
-        }
-
-        _themeSettings = originalSettings;
-        ApplyThemeSettings(_themeSettings);
-    }
-
-    private void ApplyThemeSettings(AppThemeSettings settings)
-    {
-        settings.Clamp();
-        SetBrush("WindowBackgroundBrush", AdjustTone(237, 236, 232, settings));
-        SetBrush("PanelBackgroundBrush", AdjustTone(246, 245, 241, settings, 0.0));
-        SetBrush("SurfaceBackgroundBrush", AdjustTone(242, 241, 237, settings, -1.0));
-        SetBrush("ToolbarBackgroundBrush", AdjustTone(242, 241, 237, settings, -1.0));
-        SetBrush("PanelBorderBrush", AdjustTone(208, 205, 199, settings, -3.0, 0.35));
-        SetBrush("ToolbarBorderBrush", AdjustTone(208, 205, 199, settings, -3.0, 0.35));
-        SetBrush("SoftAccentBrush", AdjustTone(221, 218, 211, settings, -1.5, 0.5));
-        SetBrush("SelectedBackgroundBrush", AdjustTone(224, 221, 214, settings, -2.0, 0.5));
-        SetBrush("SelectedBorderBrush", AdjustTone(180, 173, 163, settings, -3.0, 0.5));
-        SetBrush("PreviewBackgroundBrush", AdjustTone(231, 237, 241, settings, -1.5, 0.35));
-        SetBrush("PreviewBorderBrush", AdjustTone(184, 196, 206, settings, -2.0, 0.4));
-        SetBrush("PreviewTextBrush", AdjustTone(54, 94, 122, settings, -1.0, 0.1));
-    }
-
-    private void SetBrush(string resourceKey, Color color)
-    {
-        Resources[resourceKey] = new SolidColorBrush(color);
-    }
-
-    private static Color AdjustTone(int red, int green, int blue, AppThemeSettings settings, double extraBrightness = 0, double contrastWeight = 1.0)
-    {
-        var brightness = settings.Brightness + extraBrightness;
-        var warmth = settings.Warmth;
-        var contrast = 1 + (settings.Contrast * contrastWeight / 100.0);
-
-        return Color.FromRgb(
-            ToByte(128 + ((red - 128) * contrast) + brightness + (warmth * 0.55)),
-            ToByte(128 + ((green - 128) * contrast) + brightness + (warmth * 0.2)),
-            ToByte(128 + ((blue - 128) * contrast) + brightness - (warmth * 0.45)));
-    }
-
-    private static byte ToByte(double value) => (byte)Math.Clamp((int)Math.Round(value), 0, 255);
 
     private void CloseToTrayToggleButton_Changed(object sender, RoutedEventArgs e)
     {
