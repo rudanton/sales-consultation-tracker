@@ -1,0 +1,13 @@
+global using Application = System.Windows.Application;
+global using Button = System.Windows.Controls.Button;
+global using Clipboard = System.Windows.Clipboard;
+global using ComboBox = System.Windows.Controls.ComboBox;
+global using DataFormats = System.Windows.DataFormats;
+global using DragDropEffects = System.Windows.DragDropEffects;
+global using DragEventArgs = System.Windows.DragEventArgs;
+global using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+global using MessageBox = System.Windows.MessageBox;
+global using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+global using SystemColors = System.Windows.SystemColors;
+global using TextBox = System.Windows.Controls.TextBox;
+global using TextBoxBase = System.Windows.Controls.Primitives.TextBoxBase;

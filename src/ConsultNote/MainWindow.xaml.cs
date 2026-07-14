@@ -29,6 +29,8 @@ public partial class MainWindow : Window
     private int? _currentSelectedCustomerId;
     private int? _editingConsultationLogId;
     private bool _isSidebarOpen;
+    private bool _isClosingForExit;
+    private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
     {
@@ -38,6 +40,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         ApplySidebarState();
         ApplyAppVersion();
+        InitializeTrayIcon();
         EnsureFileListOptions();
         UpdateMileageCustomInput();
         PreviewKeyDown += MainWindow_PreviewKeyDown;
@@ -78,6 +81,97 @@ public partial class MainWindow : Window
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
         WindowPlacementStore.Save(this);
+        if (_isClosingForExit)
+        {
+            DisposeTrayIcon();
+            return;
+        }
+
+        var result = MessageBox.Show(
+            "창을 닫으려고 합니다.\n\n예: 트레이로 숨기기\n아니오: 앱 종료\n취소: 돌아가기",
+            "Consult Note",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question,
+            MessageBoxResult.Yes);
+
+        if (result == MessageBoxResult.Cancel)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        if (result == MessageBoxResult.No)
+        {
+            _isClosingForExit = true;
+            DisposeTrayIcon();
+            return;
+        }
+
+        e.Cancel = true;
+        HideToTray();
+    }
+
+    private void InitializeTrayIcon()
+    {
+        var menu = new System.Windows.Forms.ContextMenuStrip();
+        menu.Items.Add("열기", null, (_, _) => RestoreFromTray());
+        menu.Items.Add("종료", null, (_, _) => ExitFromTray());
+
+        _trayIcon = new System.Windows.Forms.NotifyIcon
+        {
+            Text = "Consult Note",
+            Icon = System.Drawing.SystemIcons.Application,
+            ContextMenuStrip = menu,
+            Visible = false,
+        };
+        _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+    }
+
+    private void HideToTray()
+    {
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Visible = true;
+            _trayIcon.ShowBalloonTip(1500, "Consult Note", "앱이 트레이에 숨겨졌습니다.", System.Windows.Forms.ToolTipIcon.Info);
+        }
+
+        Hide();
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+        Focus();
+
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Visible = false;
+        }
+    }
+
+    private void ExitFromTray()
+    {
+        _isClosingForExit = true;
+        DisposeTrayIcon();
+        Close();
+    }
+
+    private void DisposeTrayIcon()
+    {
+        if (_trayIcon is null)
+        {
+            return;
+        }
+
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        _trayIcon = null;
     }
 
     private void RefreshSelectedCustomerUi(bool scrollConditionToTop = false)
