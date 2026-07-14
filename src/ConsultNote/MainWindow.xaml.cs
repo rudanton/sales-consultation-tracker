@@ -103,12 +103,6 @@ public partial class MainWindow : Window
 
     private void SetBrush(string resourceKey, Color color)
     {
-        if (Resources[resourceKey] is SolidColorBrush brush)
-        {
-            brush.Color = color;
-            return;
-        }
-
         Resources[resourceKey] = new SolidColorBrush(color);
     }
 
