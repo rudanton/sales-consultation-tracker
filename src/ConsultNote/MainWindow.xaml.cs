@@ -337,7 +337,7 @@ public partial class MainWindow : Window
         var exportPath = string.Empty;
         try
         {
-            var exportDirectory = Path.Combine(AppPaths.LogsDirectory, "consultation-history");
+            var exportDirectory = GetCustomerFilesDirectory(selectedCustomer.Id);
             Directory.CreateDirectory(exportDirectory);
 
             var customerName = SanitizeFileName(selectedCustomer.Name);
