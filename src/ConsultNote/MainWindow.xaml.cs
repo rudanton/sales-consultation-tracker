@@ -256,6 +256,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.V && Clipboard.ContainsImage())
+        {
+            e.Handled = true;
+            AddClipboardImageAsCustomerFile();
+            return;
+        }
+
         if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control)
         {
             return;
@@ -721,6 +728,49 @@ public partial class MainWindow : Window
     private void AddCustomerFileButton_Click(object sender, RoutedEventArgs e)
     {
         AddCustomerFile(sourceFilePath: null);
+    }
+
+    private void AddClipboardImageAsCustomerFile()
+    {
+        if (GetSelectedCustomer() is null)
+        {
+            MessageBox.Show("이미지를 추가할 고객을 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string? tempFilePath = null;
+        try
+        {
+            var image = Clipboard.GetImage();
+            if (image is null)
+            {
+                return;
+            }
+
+            var tempDirectory = Path.Combine(AppPaths.StorageDirectory, "clipboard");
+            Directory.CreateDirectory(tempDirectory);
+            tempFilePath = Path.Combine(tempDirectory, $"{DateTime.Now:yyyyMMdd_HHmmssfff}_clipboard.png");
+
+            using (var stream = File.Create(tempFilePath))
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(image));
+                encoder.Save(stream);
+            }
+
+            AddCustomerFile(tempFilePath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"클립보드 이미지 추가 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            if (tempFilePath is not null)
+            {
+                TryDeleteStoredCustomerFile(tempFilePath);
+            }
+        }
     }
 
     private void CustomerFileDropArea_DragOver(object sender, DragEventArgs e)
