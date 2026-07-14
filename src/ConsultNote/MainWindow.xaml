@@ -46,7 +46,7 @@
         <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource ControlFocusBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -62,7 +62,7 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                     <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource ControlFocusBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -85,8 +85,8 @@
                 </Trigger>
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                    <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource SelectionTextBrush}" />
+                    <Setter Property="Background" Value="{StaticResource ControlHoverBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -127,7 +127,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
+                    <Setter Property="Background" Value="Transparent" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -149,7 +149,7 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                 <Setter Property="Background" Value="{StaticResource SelectionBackgroundBrush}" />
-                                <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource SelectionBorderBrush}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -982,7 +982,7 @@
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <Border Background="{StaticResource SelectionBackgroundBrush}"
+                                <Border Background="{StaticResource ControlBackgroundBrush}"
                                         BorderBrush="{StaticResource BorderStrongBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"

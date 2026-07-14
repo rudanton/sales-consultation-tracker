@@ -29,7 +29,7 @@
         <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource DialogButton}">
             <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource ControlFocusBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource AccentTextBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </Window.Resources>
