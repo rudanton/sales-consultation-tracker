@@ -90,26 +90,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        var result = MessageBox.Show(
-            "창을 닫으려고 합니다.\n\n예: 트레이로 숨기기\n아니오: 앱 종료\n취소: 돌아가기",
-            "Consult Note",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Question,
-            MessageBoxResult.Yes);
-
-        if (result == MessageBoxResult.Cancel)
-        {
-            e.Cancel = true;
-            return;
-        }
-
-        if (result == MessageBoxResult.No)
-        {
-            _isClosingForExit = true;
-            DisposeTrayIcon();
-            return;
-        }
-
         e.Cancel = true;
         HideToTray();
     }
@@ -135,7 +115,7 @@ public partial class MainWindow : Window
         if (_trayIcon is not null)
         {
             _trayIcon.Visible = true;
-            _trayIcon.ShowBalloonTip(1500, "Consult Note", "앱이 트레이에 숨겨졌습니다.", System.Windows.Forms.ToolTipIcon.Info);
+            _trayIcon.ShowBalloonTip(1500, "Consult Note", "트레이로 이동됩니다.", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         Hide();
@@ -303,12 +283,6 @@ public partial class MainWindow : Window
 
     private void SetResourceBrush(string key, Color color)
     {
-        if (Resources[key] is SolidColorBrush brush)
-        {
-            brush.Color = color;
-            return;
-        }
-
         Resources[key] = new SolidColorBrush(color);
     }
 
