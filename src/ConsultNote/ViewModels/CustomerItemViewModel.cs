@@ -46,5 +46,9 @@ public sealed class CustomerItemViewModel
     public string ListDetail => $"{StatusText} · {PhoneNumber} · {CustomerType} · {VehicleSummary}";
     public string ContactDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
 
+    public string VehicleMemoDetail => string.IsNullOrWhiteSpace(MemoPreview) || MemoPreview == "-"
+        ? VehicleSummary
+        : $"{VehicleSummary} | {MemoPreview}";
+
     public string HeaderDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
 }

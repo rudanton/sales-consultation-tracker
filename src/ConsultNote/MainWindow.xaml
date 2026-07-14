@@ -198,11 +198,8 @@
                     </TextBlock>
                     <TextBlock Margin="0,4,0,0"
                                Style="{StaticResource MutedText}"
-                               TextWrapping="Wrap">
-                        <Run Text="{Binding VehicleSummary}" />
-                        <Run Text=" · " />
-                        <Run Text="{Binding MemoPreview}" />
-                    </TextBlock>
+                               Text="{Binding VehicleMemoDetail}"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </DataTemplate>
