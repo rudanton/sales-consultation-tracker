@@ -137,24 +137,48 @@ public partial class MainWindow : Window
 
     private void VehicleManagementButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new VehicleManagementDialog
+        try
         {
-            Owner = this,
-        };
+            var dialog = new VehicleManagementDialog
+            {
+                Owner = this,
+            };
 
-        dialog.ShowDialog();
-        GetViewModel()?.LoadVehicleOptions();
+            dialog.ShowDialog();
+            GetViewModel()?.LoadVehicleOptions();
+        }
+        catch (Exception ex)
+        {
+            LogUiError(ex, "vehicle-management-error.txt");
+            MessageBox.Show(
+                $"차종 목록 화면을 열 수 없습니다.\n\n{ex.Message}\n\nlogs 폴더의 vehicle-management-error.txt를 확인해주세요.",
+                "Consult Note",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void VehicleResourceManagementButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new VehicleResourceManagementDialog
+        try
         {
-            Owner = this,
-        };
+            var dialog = new VehicleResourceManagementDialog
+            {
+                Owner = this,
+            };
 
-        dialog.ShowDialog();
-        RefreshReferenceEstimateList();
+            dialog.ShowDialog();
+            RefreshReferenceEstimateList();
+        }
+        catch (Exception ex)
+        {
+            LogUiError(ex, "vehicle-resource-management-error.txt");
+            MessageBox.Show(
+                $"차량별 자료 화면을 열 수 없습니다.\n\n{ex.Message}\n\nlogs 폴더의 vehicle-resource-management-error.txt를 확인해주세요.",
+                "Consult Note",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
@@ -534,7 +558,7 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            MessageBox.Show("같은 차량 견적을 찾을 차량명을 먼저 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("차량별 자료를 찾을 차량명을 먼저 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -774,7 +798,7 @@ public partial class MainWindow : Window
 
         try
         {
-            dbContext.CustomerFiles.Add(new CustomerFile
+            var customerFile = new CustomerFile
             {
                 CustomerId = selectedCustomer.Id,
                 OriginalFileName = dialog.OriginalFileName,
@@ -786,7 +810,16 @@ public partial class MainWindow : Window
                 FileOrder = fileOrder,
                 Memo = dialog.Memo,
                 CreatedAt = now,
-            });
+            };
+
+            dbContext.CustomerFiles.Add(customerFile);
+            LinkEstimateFileToVehicleResource(
+                dbContext,
+                selectedCustomer.Id,
+                selectedCustomer.Name,
+                customerFile,
+                selectedCustomer.VehicleName,
+                now);
 
             dbContext.SaveChanges();
             GetViewModel()?.ReloadCustomers(selectedCustomer.Id);
@@ -832,6 +865,7 @@ public partial class MainWindow : Window
             }
 
             var filePath = customerFile.FilePath;
+            RemoveVehicleResourcesLinkedToCustomerFile(dbContext, customerFile);
             dbContext.CustomerFiles.Remove(customerFile);
             dbContext.SaveChanges();
 
@@ -985,6 +1019,13 @@ public partial class MainWindow : Window
             dialog.FileType,
             dialog.CustomFileType,
             fileOrder);
+        SyncEstimateVehicleResourceLink(
+            dbContext,
+            selectedCustomer.Id,
+            selectedCustomer.Name,
+            customerFile,
+            selectedCustomer.VehicleName,
+            DateTime.Now);
 
         try
         {
@@ -1256,12 +1297,18 @@ public partial class MainWindow : Window
         var vehicleName = GetSelectedVehicleNameForSearch() ?? TrimToNull(selectedCustomer?.VehicleName);
         if (selectedCustomer is null || string.IsNullOrWhiteSpace(vehicleName) || vehicleName == "-")
         {
-            ReferenceEstimateTitleTextBlock.Text = "같은 차량 자료";
+            ReferenceEstimateTitleTextBlock.Text = "차량별 자료";
             ReferenceEstimateListBox.ItemsSource = Array.Empty<FileItemViewModel>();
             return;
         }
 
         using var dbContext = new AppDbContext();
+        var linkedCustomerFileIds = dbContext.CustomerVehicleResourceLinks
+            .AsNoTracking()
+            .Where(link => link.CustomerFileId != null)
+            .Select(link => link.CustomerFileId!.Value)
+            .ToHashSet();
+
         var customerEstimates = dbContext.Customers
             .Include(customer => customer.CustomerFiles)
             .AsNoTracking()
@@ -1273,6 +1320,7 @@ public partial class MainWindow : Window
                 StringComparison.CurrentCultureIgnoreCase))
             .SelectMany(customer => customer.CustomerFiles
                 .Where(file => IsEstimateFileType(file.FileType, file.CustomFileType))
+                .Where(file => !linkedCustomerFileIds.Contains(file.Id))
                 .OrderByDescending(file => file.CreatedAt)
                 .Select(file => new FileItemViewModel
                 {
@@ -1289,21 +1337,35 @@ public partial class MainWindow : Window
                 }));
 
         var vehicleResources = dbContext.VehicleResourceFiles
+            .Include(file => file.CustomerLinks)
+                .ThenInclude(link => link.Customer)
             .AsNoTracking()
             .AsEnumerable()
             .Where(file => string.Equals(TrimToNull(file.VehicleName), vehicleName, StringComparison.CurrentCultureIgnoreCase))
-            .Select(file => new FileItemViewModel
+            .Select(file =>
             {
-                Id = file.Id,
-                FileName = file.DisplayName,
-                FilePath = file.FilePath,
-                FileType = GetDisplayFileType(file.FileType, file.CustomFileType),
-                FileOrder = file.FileOrder,
-                Summary = $"공용 자료 · {file.CreatedAt:yyyy-MM-dd}",
-                PreviewTitle = file.DisplayName,
-                PreviewMeta = $"공용 자료 · {file.CreatedAt:yyyy-MM-dd}",
-                PreviewLabel = file.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(file.FileType, file.CustomFileType),
-                CreatedAt = file.CreatedAt,
+                var linkedCustomerNames = file.CustomerLinks
+                    .Select(link => TrimToNull(link.Customer?.Name))
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.CurrentCulture)
+                    .ToList();
+                var sourceSummary = linkedCustomerNames.Count > 0
+                    ? string.Join(", ", linkedCustomerNames)
+                    : "차량별 자료";
+
+                return new FileItemViewModel
+                {
+                    Id = file.Id,
+                    FileName = file.DisplayName,
+                    FilePath = file.FilePath,
+                    FileType = GetDisplayFileType(file.FileType, file.CustomFileType),
+                    FileOrder = file.FileOrder,
+                    Summary = $"{sourceSummary} · {file.CreatedAt:yyyy-MM-dd}",
+                    PreviewTitle = file.DisplayName,
+                    PreviewMeta = $"{sourceSummary} · {file.CreatedAt:yyyy-MM-dd}",
+                    PreviewLabel = file.FilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? "PDF" : GetDisplayFileType(file.FileType, file.CustomFileType),
+                    CreatedAt = file.CreatedAt,
+                };
             });
 
         var estimates = customerEstimates
@@ -1313,8 +1375,8 @@ public partial class MainWindow : Window
             .ToList();
 
         ReferenceEstimateTitleTextBlock.Text = estimates.Count == 0
-            ? $"같은 차량 자료 없음 · {vehicleName}"
-            : $"같은 차량 자료 {estimates.Count}건 · {vehicleName}";
+            ? $"차량별 자료 없음 · {vehicleName}"
+            : $"차량별 자료 {estimates.Count}건 · {vehicleName}";
         ReferenceEstimateListBox.ItemsSource = estimates;
     }
 
@@ -1451,6 +1513,107 @@ public partial class MainWindow : Window
         return Path.Combine(AppPaths.CustomersDirectory, customerId.ToString(CultureInfo.InvariantCulture), "files");
     }
 
+    private void SyncEstimateVehicleResourceLink(
+        AppDbContext dbContext,
+        int customerId,
+        string customerName,
+        CustomerFile customerFile,
+        string? customerVehicleName,
+        DateTime now)
+    {
+        if (IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
+        {
+            LinkEstimateFileToVehicleResource(dbContext, customerId, customerName, customerFile, customerVehicleName, now);
+            return;
+        }
+
+        RemoveVehicleResourcesLinkedToCustomerFile(dbContext, customerFile);
+    }
+
+    private void LinkEstimateFileToVehicleResource(
+        AppDbContext dbContext,
+        int customerId,
+        string customerName,
+        CustomerFile customerFile,
+        string? customerVehicleName,
+        DateTime now)
+    {
+        if (!IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
+        {
+            return;
+        }
+
+        var existingLink = dbContext.CustomerVehicleResourceLinks
+            .Include(link => link.VehicleResourceFile)
+            .FirstOrDefault(link => link.CustomerFileId == customerFile.Id);
+
+        var vehicleName = GetSelectedVehicleNameForSearch() ?? TrimToNull(customerVehicleName);
+        var vehicleBrand = TrimToNull(GetSelectedText(VehicleBrandComboBox));
+        var fuelType = TrimToNull(GetSelectedText(FuelTypeComboBox));
+        var fileOrder = existingLink?.VehicleResourceFile?.FileOrder
+            ?? GetNextVehicleResourceFileOrder(dbContext, customerFile.FileType, customerFile.CustomFileType);
+        var displayName = BuildVehicleResourceDisplayName(vehicleName, customerFile.FileType, customerFile.CustomFileType, fileOrder);
+
+        var resource = existingLink?.VehicleResourceFile ?? new VehicleResourceFile
+        {
+            CreatedAt = now,
+        };
+
+        resource.OriginalFileName = customerFile.OriginalFileName;
+        resource.StoredFileName = customerFile.StoredFileName;
+        resource.DisplayName = displayName;
+        resource.FilePath = customerFile.FilePath;
+        resource.FileType = customerFile.FileType;
+        resource.CustomFileType = customerFile.CustomFileType;
+        resource.FileOrder = fileOrder;
+        resource.VehicleBrand = vehicleBrand;
+        resource.VehicleName = vehicleName;
+        resource.FuelType = fuelType;
+        resource.Memo = customerFile.Memo;
+
+        if (existingLink is null)
+        {
+            dbContext.VehicleResourceFiles.Add(resource);
+            dbContext.CustomerVehicleResourceLinks.Add(new CustomerVehicleResourceLink
+            {
+                CustomerId = customerId,
+                VehicleResourceFile = resource,
+                CustomerFile = customerFile,
+                Memo = $"{customerName} 견적",
+                CreatedAt = now,
+            });
+        }
+        else
+        {
+            existingLink.CustomerId = customerId;
+            existingLink.CustomerFile = customerFile;
+            existingLink.Memo = $"{customerName} 견적";
+        }
+    }
+
+    private static void RemoveVehicleResourcesLinkedToCustomerFile(AppDbContext dbContext, CustomerFile customerFile)
+    {
+        var links = dbContext.CustomerVehicleResourceLinks
+            .Include(link => link.VehicleResourceFile)
+            .Where(link => link.CustomerFileId == customerFile.Id)
+            .ToList();
+
+        foreach (var link in links)
+        {
+            var resource = link.VehicleResourceFile;
+            var linkCount = resource is null
+                ? 0
+                : dbContext.CustomerVehicleResourceLinks.Count(item => item.VehicleResourceFileId == resource.Id);
+
+            dbContext.CustomerVehicleResourceLinks.Remove(link);
+
+            if (resource is not null && linkCount <= 1)
+            {
+                dbContext.VehicleResourceFiles.Remove(resource);
+            }
+        }
+    }
+
     private void TryDeleteStoredCustomerFile(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
@@ -1517,6 +1680,12 @@ public partial class MainWindow : Window
         return string.Equals(GetDisplayFileType(fileType, customFileType), "견적", StringComparison.CurrentCultureIgnoreCase);
     }
 
+    private static string BuildVehicleResourceDisplayName(string? vehicleName, string fileType, string? customFileType, int fileOrder)
+    {
+        var safeVehicleName = string.IsNullOrWhiteSpace(vehicleName) ? "차량별자료" : vehicleName.Trim();
+        return $"{safeVehicleName}_{GetDisplayFileType(fileType, customFileType)}_{fileOrder}";
+    }
+
     private static int GetNextFileOrderFromDatabase(
         AppDbContext dbContext,
         int customerId,
@@ -1529,6 +1698,25 @@ public partial class MainWindow : Window
             .Where(file => file.CustomerId == customerId)
             .AsEnumerable()
             .Where(file => excludingFileId is null || file.Id != excludingFileId.Value)
+            .Where(file => string.Equals(
+                GetDisplayFileType(file.FileType, file.CustomFileType),
+                displayFileType,
+                StringComparison.CurrentCulture))
+            .Select(file => (int?)file.FileOrder)
+            .Max();
+
+        return (maxOrder ?? 0) + 1;
+    }
+
+    private static int GetNextVehicleResourceFileOrder(
+        AppDbContext dbContext,
+        string fileType,
+        string? customFileType)
+    {
+        var displayFileType = GetDisplayFileType(fileType, customFileType);
+        var maxOrder = dbContext.VehicleResourceFiles
+            .AsNoTracking()
+            .AsEnumerable()
             .Where(file => string.Equals(
                 GetDisplayFileType(file.FileType, file.CustomFileType),
                 displayFileType,
@@ -1967,5 +2155,18 @@ public partial class MainWindow : Window
             "Consult Note",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
+    }
+
+    private static void LogUiError(Exception exception, string fileName)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.LogsDirectory);
+            File.WriteAllText(Path.Combine(AppPaths.LogsDirectory, fileName), exception.ToString());
+        }
+        catch
+        {
+            // Keep the user-facing message path alive even if logging fails.
+        }
     }
 }

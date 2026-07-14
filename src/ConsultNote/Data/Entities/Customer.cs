@@ -75,4 +75,6 @@ public sealed class Customer
     public List<Attachment> Attachments { get; } = [];
 
     public List<CustomerFile> CustomerFiles { get; } = [];
+
+    public List<CustomerVehicleResourceLink> VehicleResourceLinks { get; } = [];
 }

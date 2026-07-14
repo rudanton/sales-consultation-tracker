@@ -9,44 +9,42 @@ namespace ConsultNote.Data.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "VehicleResourceFiles",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    OriginalFileName = table.Column<string>(type: "TEXT", maxLength: 260, nullable: false),
-                    StoredFileName = table.Column<string>(type: "TEXT", maxLength: 260, nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 260, nullable: false),
-                    FilePath = table.Column<string>(type: "TEXT", nullable: false),
-                    FileType = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false),
-                    CustomFileType = table.Column<string>(type: "TEXT", maxLength: 80, nullable: true),
-                    FileOrder = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 1),
-                    VehicleBrand = table.Column<string>(type: "TEXT", maxLength: 80, nullable: true),
-                    VehicleName = table.Column<string>(type: "TEXT", maxLength: 120, nullable: true),
-                    FuelType = table.Column<string>(type: "TEXT", maxLength: 80, nullable: true),
-                    Memo = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_VehicleResourceFiles", x => x.Id);
-                });
+            migrationBuilder.Sql(
+                """
+                CREATE TABLE IF NOT EXISTS "VehicleResourceFiles" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_VehicleResourceFiles" PRIMARY KEY AUTOINCREMENT,
+                    "OriginalFileName" TEXT NOT NULL,
+                    "StoredFileName" TEXT NOT NULL,
+                    "DisplayName" TEXT NOT NULL,
+                    "FilePath" TEXT NOT NULL,
+                    "FileType" TEXT NOT NULL,
+                    "CustomFileType" TEXT NULL,
+                    "FileOrder" INTEGER NOT NULL DEFAULT 1,
+                    "VehicleBrand" TEXT NULL,
+                    "VehicleName" TEXT NULL,
+                    "FuelType" TEXT NULL,
+                    "Memo" TEXT NULL,
+                    "CreatedAt" TEXT NOT NULL
+                );
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_VehicleResourceFiles_DisplayName",
-                table: "VehicleResourceFiles",
-                column: "DisplayName");
+            migrationBuilder.Sql(
+                """
+                CREATE INDEX IF NOT EXISTS "IX_VehicleResourceFiles_DisplayName"
+                ON "VehicleResourceFiles" ("DisplayName");
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_VehicleResourceFiles_FileType",
-                table: "VehicleResourceFiles",
-                column: "FileType");
+            migrationBuilder.Sql(
+                """
+                CREATE INDEX IF NOT EXISTS "IX_VehicleResourceFiles_FileType"
+                ON "VehicleResourceFiles" ("FileType");
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_VehicleResourceFiles_VehicleName",
-                table: "VehicleResourceFiles",
-                column: "VehicleName");
+            migrationBuilder.Sql(
+                """
+                CREATE INDEX IF NOT EXISTS "IX_VehicleResourceFiles_VehicleName"
+                ON "VehicleResourceFiles" ("VehicleName");
+                """);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

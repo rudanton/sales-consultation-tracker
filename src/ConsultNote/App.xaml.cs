@@ -2,8 +2,6 @@ using ConsultNote.Infrastructure;
 using System.IO;
 using System.Windows;
 
-using ConsultNote.Data;
-using Microsoft.EntityFrameworkCore;
 namespace ConsultNote;
 
 
@@ -13,9 +11,10 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        using var db = new AppDbContext();
-        db.Database.Migrate();
-        
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
         base.OnStartup(e);
         try
         {
@@ -40,12 +39,44 @@ public partial class App : Application
         mainWindow.Show();
     }
 
+    private static void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        TryWriteStartupErrorLog(e.Exception, "unhandled-ui-error.txt");
+
+        MessageBox.Show(
+            $"처리 중 오류가 발생했습니다.\n\n{e.Exception.Message}\n\nlogs 폴더의 unhandled-ui-error.txt를 확인해주세요.",
+            "Consult Note",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+
+        e.Handled = true;
+    }
+
+    private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception exception)
+        {
+            TryWriteStartupErrorLog(exception, "unhandled-fatal-error.txt");
+        }
+    }
+
+    private static void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        TryWriteStartupErrorLog(e.Exception, "unhandled-task-error.txt");
+        e.SetObserved();
+    }
+
     private static void TryWriteStartupErrorLog(Exception exception)
+    {
+        TryWriteStartupErrorLog(exception, "startup-error.txt");
+    }
+
+    private static void TryWriteStartupErrorLog(Exception exception, string fileName)
     {
         try
         {
             Directory.CreateDirectory(AppPaths.LogsDirectory);
-            var logPath = Path.Combine(AppPaths.LogsDirectory, "startup-error.txt");
+            var logPath = Path.Combine(AppPaths.LogsDirectory, fileName);
             File.WriteAllText(logPath, exception.ToString());
         }
         catch

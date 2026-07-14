@@ -295,6 +295,41 @@ namespace ConsultNote.Data.Migrations
                     b.ToTable("Estimates");
                 });
 
+            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerVehicleResourceLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CustomerFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Memo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VehicleResourceFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerFileId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("VehicleResourceFileId");
+
+                    b.HasIndex("CustomerId", "VehicleResourceFileId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerVehicleResourceLinks");
+                });
+
             modelBuilder.Entity("ConsultNote.Data.Entities.VehicleResourceFile", b =>
                 {
                     b.Property<int>("Id")
@@ -1019,6 +1054,32 @@ namespace ConsultNote.Data.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerVehicleResourceLink", b =>
+                {
+                    b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
+                        .WithMany("VehicleResourceLinks")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ConsultNote.Data.Entities.CustomerFile", "CustomerFile")
+                        .WithMany("VehicleResourceLinks")
+                        .HasForeignKey("CustomerFileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ConsultNote.Data.Entities.VehicleResourceFile", "VehicleResourceFile")
+                        .WithMany("CustomerLinks")
+                        .HasForeignKey("VehicleResourceFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("CustomerFile");
+
+                    b.Navigation("VehicleResourceFile");
+                });
+
             modelBuilder.Entity("ConsultNote.Data.Entities.Estimate", b =>
                 {
                     b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
@@ -1039,6 +1100,18 @@ namespace ConsultNote.Data.Migrations
                     b.Navigation("CustomerFiles");
 
                     b.Navigation("Estimates");
+
+                    b.Navigation("VehicleResourceLinks");
+                });
+
+            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerFile", b =>
+                {
+                    b.Navigation("VehicleResourceLinks");
+                });
+
+            modelBuilder.Entity("ConsultNote.Data.Entities.VehicleResourceFile", b =>
+                {
+                    b.Navigation("CustomerLinks");
                 });
 #pragma warning restore 612, 618
         }

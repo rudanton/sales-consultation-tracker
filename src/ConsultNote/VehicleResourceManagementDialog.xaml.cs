@@ -46,6 +46,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         using var dbContext = new AppDbContext();
         var resources = dbContext.VehicleResourceFiles
             .AsNoTracking()
+            .AsEnumerable()
             .OrderBy(file => file.VehicleName)
             .ThenBy(file => GetDisplayFileType(file.FileType, file.CustomFileType))
             .ThenBy(file => file.FileOrder)
@@ -93,7 +94,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"차량 자료 폴더를 열 수 없습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"차량별 자료 폴더를 열 수 없습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -225,7 +226,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     {
         if (SelectedResource is null)
         {
-            MessageBox.Show("수정할 차량 자료를 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("수정할 차량별 자료를 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -285,12 +286,12 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     {
         if (SelectedResource is null)
         {
-            MessageBox.Show("삭제할 차량 자료를 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("삭제할 차량별 자료를 선택해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var result = MessageBox.Show(
-            $"선택한 차량 자료를 삭제할까요?\n\n{SelectedResource.FileName}",
+            $"선택한 차량별 자료를 삭제할까요?\n\n{SelectedResource.FileName}",
             "Consult Note",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);

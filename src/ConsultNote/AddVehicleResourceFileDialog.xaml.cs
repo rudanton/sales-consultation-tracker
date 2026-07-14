@@ -54,7 +54,7 @@ public partial class AddVehicleResourceFileDialog : Window
 
         if (_isEditMode)
         {
-            TitleTextBlock.Text = "차량 자료 수정";
+            TitleTextBlock.Text = "차량별 자료 수정";
             FileLabelTextBlock.Visibility = Visibility.Collapsed;
             FilePickerPanel.Visibility = Visibility.Collapsed;
         }

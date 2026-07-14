@@ -25,4 +25,6 @@ public sealed class CustomerFile
     public string? Memo { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public List<CustomerVehicleResourceLink> VehicleResourceLinks { get; } = [];
 }

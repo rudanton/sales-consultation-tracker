@@ -21,15 +21,12 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<VehicleResourceFile> VehicleResourceFiles => Set<VehicleResourceFile>();
 
+    public DbSet<CustomerVehicleResourceLink> CustomerVehicleResourceLinks => Set<CustomerVehicleResourceLink>();
+
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        File.WriteAllText(
-    Path.Combine(AppContext.BaseDirectory, "db-path-debug.txt"),
-    AppPaths.DatabasePath
-);
-
         if (!optionsBuilder.IsConfigured)
         {
             optionsBuilder.UseSqlite($"Data Source={AppPaths.DatabasePath}");
@@ -72,6 +69,12 @@ public sealed class AppDbContext : DbContext
                 .HasMany(customer => customer.CustomerFiles)
                 .WithOne(customerFile => customerFile.Customer)
                 .HasForeignKey(customerFile => customerFile.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity
+                .HasMany(customer => customer.VehicleResourceLinks)
+                .WithOne(link => link.Customer)
+                .HasForeignKey(link => link.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -174,6 +177,30 @@ public sealed class AppDbContext : DbContext
             entity.HasIndex(file => file.DisplayName);
             entity.HasIndex(file => file.FileType);
             entity.HasIndex(file => file.VehicleName);
+        });
+
+        modelBuilder.Entity<CustomerVehicleResourceLink>(entity =>
+        {
+            entity.Property(link => link.CreatedAt).IsRequired();
+
+            entity.HasIndex(link => link.CustomerId);
+            entity.HasIndex(link => link.VehicleResourceFileId);
+            entity.HasIndex(link => link.CustomerFileId);
+
+            entity.HasIndex(link => new { link.CustomerId, link.VehicleResourceFileId })
+                .IsUnique();
+
+            entity
+                .HasOne(link => link.VehicleResourceFile)
+                .WithMany(file => file.CustomerLinks)
+                .HasForeignKey(link => link.VehicleResourceFileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity
+                .HasOne(link => link.CustomerFile)
+                .WithMany(file => file.VehicleResourceLinks)
+                .HasForeignKey(link => link.CustomerFileId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

@@ -295,11 +295,11 @@
                             Style="{StaticResource PrimaryButton}"
                             Margin="0,0,8,0"
                             Click="AddCustomerButton_Click" />
-                    <Button Content="차량 관리"
+                    <Button Content="차종 목록"
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleManagementButton_Click" />
-                    <Button Content="차량 자료"
+                    <Button Content="차량별 자료"
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleResourceManagementButton_Click" />
@@ -779,8 +779,8 @@
                                         <ColumnDefinition Width="8" />
                                         <ColumnDefinition Width="1.45*" />
                                     </Grid.ColumnDefinitions>
-                                    <Button Content="같은 차량 견적"
-                                            ToolTip="선택한 차량명으로 기존 상담과 견적 파일을 검색합니다."
+                                    <Button Content="차량별 자료"
+                                            ToolTip="선택한 차량명으로 기존 상담과 차량별 자료를 검색합니다."
                                             Style="{StaticResource ToolbarButton}"
                                             Click="SimilarConditionSearchButton_Click" />
                                     <Button Grid.Column="2"
@@ -1013,7 +1013,7 @@
                                      ItemContainerStyle="{StaticResource FileItem}" />
                             <TextBlock x:Name="ReferenceEstimateTitleTextBlock"
                                        Grid.Row="3"
-                                       Text="같은 차량 견적"
+                                       Text="차량별 자료"
                                        Style="{StaticResource SectionTitle}"
                                        Margin="0,12,0,6" />
                             <ListBox x:Name="ReferenceEstimateListBox"
