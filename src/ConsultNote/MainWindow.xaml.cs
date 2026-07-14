@@ -275,6 +275,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ConsultationContentTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Tab || Keyboard.Modifiers != ModifierKeys.None)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ConsultationLogSaveButton.Focus();
+    }
+
     private void ConsultationExportButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryGetMileageValue(out _))

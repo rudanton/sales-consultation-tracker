@@ -849,7 +849,8 @@
                                              AcceptsReturn="True"
                                              HorizontalScrollBarVisibility="Disabled"
                                              VerticalScrollBarVisibility="Auto"
-                                             Padding="8,6" />
+                                             Padding="8,6"
+                                             PreviewKeyDown="ConsultationContentTextBox_PreviewKeyDown" />
                                 </StackPanel>
                                 <Grid Grid.Row="2">
                                     <Grid.RowDefinitions>
