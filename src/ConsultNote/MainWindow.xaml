@@ -8,15 +8,15 @@
         Width="1440"
         Icon="Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen"
-        Background="#F5F7FA"
+        Background="#F4EFE6"
         FontFamily="Segoe UI, Malgun Gothic">
     <Window.Resources>
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D7DEE8" />
-        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B" />
-        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#172033" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D8CCBA" />
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFCF4" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#756B5E" />
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#2A2219" />
         <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
-        <SolidColorBrush x:Key="SoftAccentBrush" Color="#EAF1FF" />
+        <SolidColorBrush x:Key="SoftAccentBrush" Color="#EFE4D2" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
@@ -44,8 +44,8 @@
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#CBD5E1" />
-            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D6C7B4" />
+            <Setter Property="Background" Value="#FFF8ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
@@ -60,8 +60,8 @@
         <Style x:Key="ProminentToggleButton" TargetType="ToggleButton">
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#CBD5E1" />
-            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D6C7B4" />
+            <Setter Property="Background" Value="#FFF8ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -103,8 +103,8 @@
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="#CBD5E1" />
-            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D6C7B4" />
+            <Setter Property="Background" Value="#FFF8ED" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="16" />
@@ -134,7 +134,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#EAF1FF" />
+                    <Setter Property="Background" Value="#EFE4D2" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -151,12 +151,12 @@
                     Padding="12">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="#FFFFFF" />
-                        <Setter Property="BorderBrush" Value="#E2E8F0" />
+                        <Setter Property="Background" Value="#FFFCF4" />
+                        <Setter Property="BorderBrush" Value="#E3D5C3" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter Property="Background" Value="#EAF1FF" />
-                                <Setter Property="BorderBrush" Value="#93C5FD" />
+                                <Setter Property="Background" Value="#F1E4D0" />
+                                <Setter Property="BorderBrush" Value="#C9B28F" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -206,7 +206,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConsultationLogTemplate">
-            <Border BorderBrush="#E2E8F0"
+            <Border BorderBrush="#E3D5C3"
                     BorderThickness="0,0,0,1"
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
@@ -249,8 +249,8 @@
         </DataTemplate>
 
         <DataTemplate x:Key="FileTemplate">
-            <Border Background="#FFFFFF"
-                    BorderBrush="#E2E8F0"
+            <Border Background="#FFFCF4"
+                    BorderBrush="#E3D5C3"
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="10">
@@ -308,7 +308,7 @@
                              Padding="12,8"
                              FontSize="14"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Foreground="#334155" />
+                             Foreground="#3B3329" />
                     <Button Grid.Column="2"
                             Content="초기화"
                             Style="{StaticResource ToolbarButton}"
@@ -331,14 +331,6 @@
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleResourceManagementButton_Click" />
-                    <ToggleButton x:Name="DarkModeToggleButton"
-                                  Content="다크"
-                                  Style="{StaticResource ProminentToggleButton}"
-                                  Height="34"
-                                  MinHeight="34"
-                                  Margin="0,0,8,0"
-                                  Checked="DarkModeToggleButton_Changed"
-                                  Unchecked="DarkModeToggleButton_Changed" />
                     <Button Content="업데이트 확인"
                             Style="{StaticResource ToolbarButton}"
                             Click="CheckUpdateButton_Click" />
@@ -346,8 +338,8 @@
 
                 <Border Grid.Row="1"
                         Grid.ColumnSpan="3"
-                        Background="#F8FAFC"
-                        BorderBrush="#E2E8F0"
+                        Background="#FBF4EA"
+                        BorderBrush="#E3D5C3"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="10,7"
@@ -512,8 +504,8 @@
 
                     <Border x:Name="BasicInfoPanel"
                             Grid.Row="1"
-                            Background="#F8FAFC"
-                            BorderBrush="#E2E8F0"
+                            Background="#FBF4EA"
+                            BorderBrush="#E3D5C3"
                             BorderThickness="1"
                             CornerRadius="6"
                             Padding="12"
@@ -559,8 +551,8 @@
 
                         <Border x:Name="ConditionFormPanel"
                                 Grid.Column="0"
-                                Background="#FBFCFE"
-                                BorderBrush="#E2E8F0"
+                                Background="#FFF8ED"
+                                BorderBrush="#E3D5C3"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="10,8">
@@ -827,8 +819,8 @@
                         </Border>
 
                         <Border Grid.Column="2"
-                                Background="#FFFFFF"
-                                BorderBrush="#E2E8F0"
+                                Background="#FFFCF4"
+                                BorderBrush="#E3D5C3"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="14">
@@ -978,8 +970,8 @@
                         </Grid>
 
                         <Border Grid.Row="1"
-                                Background="#F8FAFC"
-                                BorderBrush="#CBD5E1"
+                                Background="#FBF4EA"
+                                BorderBrush="#D6C7B4"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="12">

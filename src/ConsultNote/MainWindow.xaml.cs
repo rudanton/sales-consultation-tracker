@@ -13,7 +13,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -31,7 +30,6 @@ public partial class MainWindow : Window
     private int? _editingConsultationLogId;
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
-    private bool _isDarkMode;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
@@ -78,7 +76,6 @@ public partial class MainWindow : Window
 
         Topmost = true;
         Topmost = false;
-        ApplyTheme();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -157,18 +154,6 @@ public partial class MainWindow : Window
         _trayIcon = null;
     }
 
-    private readonly record struct ThemePalette(
-        Color AppBackground,
-        Color PanelBackground,
-        Color CardBackground,
-        Color ControlBackground,
-        Color Border,
-        Color PrimaryText,
-        Color MutedText,
-        Color SoftAccent,
-        Color ButtonBackground,
-        Color SelectedBackground);
-
     private void RefreshSelectedCustomerUi(bool scrollConditionToTop = false)
     {
         LoadSelectedCustomerConditionForm();
@@ -197,176 +182,6 @@ public partial class MainWindow : Window
         SidebarCollapsedToggleButton.Content = "파일 ›";
         SidebarToggleButton.ToolTip = _isSidebarOpen ? "파일 사이드바 접기" : "파일 열기";
         SidebarCollapsedToggleButton.ToolTip = SidebarToggleButton.ToolTip;
-    }
-
-    private void ApplyTheme()
-    {
-        var palette = _isDarkMode
-            ? new ThemePalette(
-                AppBackground: Color.FromRgb(8, 8, 8),
-                PanelBackground: Color.FromRgb(18, 18, 18),
-                CardBackground: Color.FromRgb(30, 30, 30),
-                ControlBackground: Color.FromRgb(24, 24, 24),
-                Border: Color.FromRgb(55, 55, 55),
-                PrimaryText: Color.FromRgb(245, 245, 245),
-                MutedText: Color.FromRgb(176, 176, 176),
-                SoftAccent: Color.FromRgb(42, 42, 42),
-                ButtonBackground: Color.FromRgb(35, 35, 35),
-                SelectedBackground: Color.FromRgb(45, 45, 45))
-            : new ThemePalette(
-                AppBackground: Color.FromRgb(245, 247, 250),
-                PanelBackground: Colors.White,
-                CardBackground: Colors.White,
-                ControlBackground: Colors.White,
-                Border: Color.FromRgb(215, 222, 232),
-                PrimaryText: Color.FromRgb(23, 32, 51),
-                MutedText: Color.FromRgb(100, 116, 139),
-                SoftAccent: Color.FromRgb(234, 241, 255),
-                ButtonBackground: Colors.White,
-                SelectedBackground: Color.FromRgb(234, 241, 255));
-
-        SetResourceBrush("PanelBorderBrush", palette.Border);
-        SetResourceBrush("PanelBackgroundBrush", palette.PanelBackground);
-        SetResourceBrush("MutedTextBrush", palette.MutedText);
-        SetResourceBrush("PrimaryTextBrush", palette.PrimaryText);
-        SetResourceBrush("SoftAccentBrush", palette.SoftAccent);
-
-        Background = new SolidColorBrush(palette.AppBackground);
-        RootGrid.Background = Brushes.Transparent;
-        ApplyThemeToTree(RootGrid, palette);
-    }
-
-    private void ApplyThemeToTree(DependencyObject root, ThemePalette palette)
-    {
-        switch (root)
-        {
-            case Border border:
-                if (border.Background is not null && !IsTransparent(border.Background))
-                {
-                    border.Background = new SolidColorBrush(GetBorderBackground(border, palette));
-                }
-
-                if (border.BorderBrush is not null)
-                {
-                    border.BorderBrush = new SolidColorBrush(palette.Border);
-                }
-                break;
-
-            case TextBlock textBlock:
-                textBlock.Foreground = new SolidColorBrush(GetTextBlockColor(textBlock, palette));
-                break;
-
-            case TextBox textBox:
-                textBox.Background = textBox.IsReadOnly ? Brushes.Transparent : new SolidColorBrush(palette.ControlBackground);
-                textBox.Foreground = new SolidColorBrush(palette.PrimaryText);
-                textBox.BorderBrush = new SolidColorBrush(palette.Border);
-                break;
-
-            case ComboBox comboBox:
-                comboBox.Background = new SolidColorBrush(palette.ControlBackground);
-                comboBox.Foreground = new SolidColorBrush(palette.PrimaryText);
-                comboBox.BorderBrush = new SolidColorBrush(palette.Border);
-                break;
-
-            case ListBox listBox:
-                listBox.Background = Brushes.Transparent;
-                listBox.Foreground = new SolidColorBrush(palette.PrimaryText);
-                listBox.BorderBrush = new SolidColorBrush(palette.Border);
-                break;
-
-            case CheckBox checkBox:
-                checkBox.Foreground = new SolidColorBrush(palette.PrimaryText);
-                break;
-
-            case Button button when button.Background is not null:
-                if (!IsAccentBrush(button.Background))
-                {
-                    button.Background = new SolidColorBrush(palette.ButtonBackground);
-                    button.Foreground = new SolidColorBrush(palette.PrimaryText);
-                    button.BorderBrush = new SolidColorBrush(palette.Border);
-                }
-                break;
-
-            case System.Windows.Controls.Primitives.ToggleButton toggleButton:
-                if (!IsAccentBrush(toggleButton.Background))
-                {
-                    toggleButton.Background = new SolidColorBrush(toggleButton.IsChecked == true ? palette.SoftAccent : palette.ButtonBackground);
-                    toggleButton.Foreground = new SolidColorBrush(palette.PrimaryText);
-                    toggleButton.BorderBrush = new SolidColorBrush(toggleButton.IsChecked == true ? Color.FromRgb(96, 165, 250) : palette.Border);
-                }
-                break;
-
-            case ListBoxItem listBoxItem:
-                listBoxItem.Background = new SolidColorBrush(listBoxItem.IsSelected ? palette.SelectedBackground : Colors.Transparent);
-                listBoxItem.Foreground = new SolidColorBrush(palette.PrimaryText);
-                break;
-        }
-
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
-        {
-            ApplyThemeToTree(VisualTreeHelper.GetChild(root, i), palette);
-        }
-    }
-
-    private void SetResourceBrush(string key, Color color)
-    {
-        Resources[key] = new SolidColorBrush(color);
-    }
-
-    private static Color GetBorderBackground(Border border, ThemePalette palette)
-    {
-        if (HasSelectedListBoxItemAncestor(border))
-        {
-            return palette.SelectedBackground;
-        }
-
-        return string.IsNullOrWhiteSpace(border.Name)
-            || border.Name is "BasicInfoPanel" or "ConditionFormPanel" or "SidebarCollapsedPanel"
-            ? palette.CardBackground
-            : palette.PanelBackground;
-    }
-
-    private static bool HasSelectedListBoxItemAncestor(DependencyObject element)
-    {
-        var current = VisualTreeHelper.GetParent(element);
-        while (current is not null)
-        {
-            if (current is ListBoxItem { IsSelected: true })
-            {
-                return true;
-            }
-
-            current = VisualTreeHelper.GetParent(current);
-        }
-
-        return false;
-    }
-
-    private Color GetTextBlockColor(TextBlock textBlock, ThemePalette palette)
-    {
-        if (textBlock.Text == "★")
-        {
-            return Color.FromRgb(245, 158, 11);
-        }
-
-        if (textBlock.Name == "SelectedFilePreviewLabel")
-        {
-            return _isDarkMode ? Color.FromRgb(147, 197, 253) : Color.FromRgb(29, 78, 216);
-        }
-
-        return textBlock.Style == Resources["MutedText"] || textBlock.FontSize <= 12.5
-            ? palette.MutedText
-            : palette.PrimaryText;
-    }
-
-    private static bool IsTransparent(Brush brush)
-    {
-        return brush is SolidColorBrush { Color.A: 0 };
-    }
-
-    private static bool IsAccentBrush(Brush brush)
-    {
-        return brush is SolidColorBrush solidColorBrush && solidColorBrush.Color == Color.FromRgb(37, 99, 235);
     }
 
     private void AddCustomerButton_Click(object sender, RoutedEventArgs e)
@@ -496,12 +311,6 @@ public partial class MainWindow : Window
         {
             viewModel.SearchText = string.Empty;
         }
-    }
-
-    private void DarkModeToggleButton_Changed(object sender, RoutedEventArgs e)
-    {
-        _isDarkMode = DarkModeToggleButton.IsChecked == true;
-        ApplyTheme();
     }
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -989,10 +798,6 @@ public partial class MainWindow : Window
             UpdateSelectedFilePreview();
         }
 
-        if (_isDarkMode)
-        {
-            Dispatcher.BeginInvoke(ApplyTheme, DispatcherPriority.ContextIdle);
-        }
     }
 
     private void AddCustomerFileButton_Click(object sender, RoutedEventArgs e)
