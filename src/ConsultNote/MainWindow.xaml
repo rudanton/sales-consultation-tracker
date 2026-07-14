@@ -8,11 +8,20 @@
         Width="1440"
         Icon="Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen"
-        Background="#EDECE8"
+        Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI, Malgun Gothic">
     <Window.Resources>
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#EDECE8" />
         <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0CDC7" />
         <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F6F5F1" />
+        <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#F2F1ED" />
+        <SolidColorBrush x:Key="ToolbarBorderBrush" Color="#D0CDC7" />
+        <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#F2F1ED" />
+        <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#E0DDD6" />
+        <SolidColorBrush x:Key="SelectedBorderBrush" Color="#B4ADA3" />
+        <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#E7EDF1" />
+        <SolidColorBrush x:Key="PreviewBorderBrush" Color="#B8C4CE" />
+        <SolidColorBrush x:Key="PreviewTextBrush" Color="#365E7A" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#6F6A61" />
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#24211D" />
         <SolidColorBrush x:Key="AccentBrush" Color="#3A6282" />
@@ -44,8 +53,8 @@
         <Style x:Key="ToolbarButton" TargetType="Button">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#D0CDC7" />
-            <Setter Property="Background" Value="#F2F1ED" />
+            <Setter Property="BorderBrush" Value="{StaticResource ToolbarBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ToolbarBackgroundBrush}" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
@@ -60,8 +69,8 @@
         <Style x:Key="ProminentToggleButton" TargetType="ToggleButton">
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="BorderBrush" Value="#D0CDC7" />
-            <Setter Property="Background" Value="#F2F1ED" />
+            <Setter Property="BorderBrush" Value="{StaticResource ToolbarBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ToolbarBackgroundBrush}" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -103,8 +112,8 @@
             <Setter Property="Height" Value="30" />
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderBrush" Value="#D0CDC7" />
-            <Setter Property="Background" Value="#F2F1ED" />
+            <Setter Property="BorderBrush" Value="{StaticResource ToolbarBorderBrush}" />
+            <Setter Property="Background" Value="{StaticResource ToolbarBackgroundBrush}" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontSize" Value="16" />
@@ -134,7 +143,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#DDDAD3" />
+                    <Setter Property="Background" Value="{StaticResource SoftAccentBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -151,12 +160,12 @@
                     Padding="12">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="#F6F5F1" />
-                        <Setter Property="BorderBrush" Value="#D5D2CC" />
+                        <Setter Property="Background" Value="{StaticResource PanelBackgroundBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                <Setter Property="Background" Value="#E0DDD6" />
-                                <Setter Property="BorderBrush" Value="#B4ADA3" />
+                                <Setter Property="Background" Value="{StaticResource SelectedBackgroundBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource SelectedBorderBrush}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -206,7 +215,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConsultationLogTemplate">
-            <Border BorderBrush="#D5D2CC"
+            <Border BorderBrush="{StaticResource PanelBorderBrush}"
                     BorderThickness="0,0,0,1"
                     Padding="0,0,0,12"
                     Margin="0,0,0,12">
@@ -249,8 +258,8 @@
         </DataTemplate>
 
         <DataTemplate x:Key="FileTemplate">
-            <Border Background="#F6F5F1"
-                    BorderBrush="#D5D2CC"
+            <Border Background="{StaticResource PanelBackgroundBrush}"
+                    BorderBrush="{StaticResource PanelBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="10">
@@ -331,6 +340,10 @@
                             Style="{StaticResource ToolbarButton}"
                             Margin="0,0,8,0"
                             Click="VehicleResourceManagementButton_Click" />
+                    <Button Content="톤 조정"
+                            Style="{StaticResource ToolbarButton}"
+                            Margin="0,0,8,0"
+                            Click="ThemeToneButton_Click" />
                     <ToggleButton x:Name="CloseToTrayToggleButton"
                                   Content="트레이 켬"
                                   Style="{StaticResource ProminentToggleButton}"
@@ -347,8 +360,8 @@
 
                 <Border Grid.Row="1"
                         Grid.ColumnSpan="3"
-                        Background="#F2F1ED"
-                        BorderBrush="#D5D2CC"
+                        Background="{StaticResource SurfaceBackgroundBrush}"
+                        BorderBrush="{StaticResource PanelBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="10,7"
@@ -513,8 +526,8 @@
 
                     <Border x:Name="BasicInfoPanel"
                             Grid.Row="1"
-                            Background="#F2F1ED"
-                            BorderBrush="#D5D2CC"
+                            Background="{StaticResource SurfaceBackgroundBrush}"
+                            BorderBrush="{StaticResource PanelBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="6"
                             Padding="12"
@@ -560,8 +573,8 @@
 
                         <Border x:Name="ConditionFormPanel"
                                 Grid.Column="0"
-                                Background="#F2F1ED"
-                                BorderBrush="#D5D2CC"
+                                Background="{StaticResource ToolbarBackgroundBrush}"
+                                BorderBrush="{StaticResource PanelBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="10,8">
@@ -828,8 +841,8 @@
                         </Border>
 
                         <Border Grid.Column="2"
-                                Background="#F6F5F1"
-                                BorderBrush="#D5D2CC"
+                                Background="{StaticResource PanelBackgroundBrush}"
+                                BorderBrush="{StaticResource PanelBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="14">
@@ -979,8 +992,8 @@
                         </Grid>
 
                         <Border Grid.Row="1"
-                                Background="#F2F1ED"
-                                BorderBrush="#D0CDC7"
+                                Background="{StaticResource SurfaceBackgroundBrush}"
+                                BorderBrush="{StaticResource ToolbarBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6"
                                 Padding="12">
@@ -989,8 +1002,8 @@
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <Border Background="#E7EDF1"
-                                        BorderBrush="#B8C4CE"
+                                <Border Background="{StaticResource PreviewBackgroundBrush}"
+                                        BorderBrush="{StaticResource PreviewBorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="4"
                                         MouseLeftButtonDown="SelectedFilePreview_MouseLeftButtonDown">
@@ -1002,7 +1015,7 @@
                                                    Text="{Binding SelectedFile.PreviewLabel}"
                                                    FontSize="22"
                                                    FontWeight="Bold"
-                                                   Foreground="#365E7A"
+                                                   Foreground="{StaticResource PreviewTextBrush}"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center" />
                                     </Grid>
