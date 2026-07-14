@@ -276,7 +276,8 @@
                         <ColumnDefinition Width="8" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBox Height="38"
+                    <TextBox x:Name="SearchTextBox"
+                             Height="38"
                              Padding="12,8"
                              FontSize="14"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"

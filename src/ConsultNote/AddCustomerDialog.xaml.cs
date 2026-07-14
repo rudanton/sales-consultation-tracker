@@ -11,11 +11,18 @@ public partial class AddCustomerDialog : Window
     {
         InitializeComponent();
         PreviewKeyDown += AddCustomerDialog_PreviewKeyDown;
+        Loaded += AddCustomerDialog_Loaded;
     }
 
     public string CustomerName => CustomerNameTextBox.Text.Trim();
 
     public string? CustomerPhone => TrimToNull(CustomerPhoneTextBox.Text);
+
+    private void AddCustomerDialog_Loaded(object sender, RoutedEventArgs e)
+    {
+        CustomerNameTextBox.Focus();
+        Keyboard.Focus(CustomerNameTextBox);
+    }
 
     private void CustomerNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {

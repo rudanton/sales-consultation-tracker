@@ -241,6 +241,21 @@ public partial class MainWindow : Window
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.N)
+        {
+            e.Handled = true;
+            AddCustomerButton_Click(this, new RoutedEventArgs());
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
+        {
+            e.Handled = true;
+            SearchTextBox.Focus();
+            SearchTextBox.SelectAll();
+            return;
+        }
+
         if (e.Key != Key.Enter || Keyboard.Modifiers != ModifierKeys.Control)
         {
             return;
