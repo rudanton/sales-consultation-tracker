@@ -160,11 +160,14 @@ public partial class MainWindow : Window
     private readonly record struct ThemePalette(
         Color AppBackground,
         Color PanelBackground,
+        Color CardBackground,
         Color ControlBackground,
         Color Border,
         Color PrimaryText,
         Color MutedText,
-        Color SoftAccent);
+        Color SoftAccent,
+        Color ButtonBackground,
+        Color SelectedBackground);
 
     private void RefreshSelectedCustomerUi(bool scrollConditionToTop = false)
     {
@@ -200,21 +203,27 @@ public partial class MainWindow : Window
     {
         var palette = _isDarkMode
             ? new ThemePalette(
-                AppBackground: Color.FromRgb(15, 23, 42),
-                PanelBackground: Color.FromRgb(30, 41, 59),
-                ControlBackground: Color.FromRgb(15, 23, 42),
-                Border: Color.FromRgb(71, 85, 105),
-                PrimaryText: Color.FromRgb(226, 232, 240),
-                MutedText: Color.FromRgb(148, 163, 184),
-                SoftAccent: Color.FromRgb(30, 58, 138))
+                AppBackground: Color.FromRgb(8, 8, 8),
+                PanelBackground: Color.FromRgb(18, 18, 18),
+                CardBackground: Color.FromRgb(30, 30, 30),
+                ControlBackground: Color.FromRgb(24, 24, 24),
+                Border: Color.FromRgb(55, 55, 55),
+                PrimaryText: Color.FromRgb(245, 245, 245),
+                MutedText: Color.FromRgb(176, 176, 176),
+                SoftAccent: Color.FromRgb(42, 42, 42),
+                ButtonBackground: Color.FromRgb(35, 35, 35),
+                SelectedBackground: Color.FromRgb(45, 45, 45))
             : new ThemePalette(
                 AppBackground: Color.FromRgb(245, 247, 250),
                 PanelBackground: Colors.White,
+                CardBackground: Colors.White,
                 ControlBackground: Colors.White,
                 Border: Color.FromRgb(215, 222, 232),
                 PrimaryText: Color.FromRgb(23, 32, 51),
                 MutedText: Color.FromRgb(100, 116, 139),
-                SoftAccent: Color.FromRgb(234, 241, 255));
+                SoftAccent: Color.FromRgb(234, 241, 255),
+                ButtonBackground: Colors.White,
+                SelectedBackground: Color.FromRgb(234, 241, 255));
 
         SetResourceBrush("PanelBorderBrush", palette.Border);
         SetResourceBrush("PanelBackgroundBrush", palette.PanelBackground);
@@ -234,13 +243,17 @@ public partial class MainWindow : Window
             case Border border:
                 if (border.Background is not null && !IsTransparent(border.Background))
                 {
-                    border.Background = new SolidColorBrush(palette.PanelBackground);
+                    border.Background = new SolidColorBrush(GetBorderBackground(border, palette));
                 }
 
                 if (border.BorderBrush is not null)
                 {
                     border.BorderBrush = new SolidColorBrush(palette.Border);
                 }
+                break;
+
+            case TextBlock textBlock:
+                textBlock.Foreground = new SolidColorBrush(GetTextBlockColor(textBlock, palette));
                 break;
 
             case TextBox textBox:
@@ -268,10 +281,24 @@ public partial class MainWindow : Window
             case Button button when button.Background is not null:
                 if (!IsAccentBrush(button.Background))
                 {
-                    button.Background = new SolidColorBrush(palette.ControlBackground);
+                    button.Background = new SolidColorBrush(palette.ButtonBackground);
                     button.Foreground = new SolidColorBrush(palette.PrimaryText);
                     button.BorderBrush = new SolidColorBrush(palette.Border);
                 }
+                break;
+
+            case System.Windows.Controls.Primitives.ToggleButton toggleButton:
+                if (!IsAccentBrush(toggleButton.Background))
+                {
+                    toggleButton.Background = new SolidColorBrush(toggleButton.IsChecked == true ? palette.SoftAccent : palette.ButtonBackground);
+                    toggleButton.Foreground = new SolidColorBrush(palette.PrimaryText);
+                    toggleButton.BorderBrush = new SolidColorBrush(toggleButton.IsChecked == true ? Color.FromRgb(96, 165, 250) : palette.Border);
+                }
+                break;
+
+            case ListBoxItem listBoxItem:
+                listBoxItem.Background = new SolidColorBrush(listBoxItem.IsSelected ? palette.SelectedBackground : Colors.Transparent);
+                listBoxItem.Foreground = new SolidColorBrush(palette.PrimaryText);
                 break;
         }
 
@@ -284,6 +311,52 @@ public partial class MainWindow : Window
     private void SetResourceBrush(string key, Color color)
     {
         Resources[key] = new SolidColorBrush(color);
+    }
+
+    private static Color GetBorderBackground(Border border, ThemePalette palette)
+    {
+        if (HasSelectedListBoxItemAncestor(border))
+        {
+            return palette.SelectedBackground;
+        }
+
+        return string.IsNullOrWhiteSpace(border.Name)
+            || border.Name is "BasicInfoPanel" or "ConditionFormPanel" or "SidebarCollapsedPanel"
+            ? palette.CardBackground
+            : palette.PanelBackground;
+    }
+
+    private static bool HasSelectedListBoxItemAncestor(DependencyObject element)
+    {
+        var current = VisualTreeHelper.GetParent(element);
+        while (current is not null)
+        {
+            if (current is ListBoxItem { IsSelected: true })
+            {
+                return true;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private Color GetTextBlockColor(TextBlock textBlock, ThemePalette palette)
+    {
+        if (textBlock.Text == "★")
+        {
+            return Color.FromRgb(245, 158, 11);
+        }
+
+        if (textBlock.Name == "SelectedFilePreviewLabel")
+        {
+            return _isDarkMode ? Color.FromRgb(147, 197, 253) : Color.FromRgb(29, 78, 216);
+        }
+
+        return textBlock.Style == Resources["MutedText"] || textBlock.FontSize <= 12.5
+            ? palette.MutedText
+            : palette.PrimaryText;
     }
 
     private static bool IsTransparent(Brush brush)
