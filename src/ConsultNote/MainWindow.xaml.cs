@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     private int? _editingConsultationLogId;
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
-    private bool _closeToTrayOnClose = true;
+    private bool _closeToTrayOnClose;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
