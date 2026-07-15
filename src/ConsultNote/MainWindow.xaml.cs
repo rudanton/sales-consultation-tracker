@@ -124,11 +124,18 @@ public partial class MainWindow : Window
         _trayIcon = new System.Windows.Forms.NotifyIcon
         {
             Text = "Consult Note",
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = GetTrayIcon(),
             ContextMenuStrip = menu,
             Visible = false,
         };
         _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+    }
+
+    private static System.Drawing.Icon GetTrayIcon()
+    {
+        return !string.IsNullOrWhiteSpace(Environment.ProcessPath) && File.Exists(Environment.ProcessPath)
+            ? System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath) ?? System.Drawing.SystemIcons.Application
+            : System.Drawing.SystemIcons.Application;
     }
 
     private void HideToTray()
