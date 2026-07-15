@@ -10,6 +10,8 @@ public sealed class ConsultationLog
 
     public string Content { get; set; } = string.Empty;
 
+    public CustomerStatus Status { get; set; } = CustomerStatus.Consulting;
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

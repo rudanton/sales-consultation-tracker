@@ -530,6 +530,7 @@ public partial class MainWindow : Window
             }
 
             SaveConditionFormToCustomer(customer, mileage);
+            var nextStatus = viewModel?.SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
 
             if (_editingConsultationLogId is not null)
             {
@@ -550,6 +551,7 @@ public partial class MainWindow : Window
                 }
 
                 log.Content = content;
+                log.Status = nextStatus;
                 log.UpdatedAt = now;
             }
             else if (!string.IsNullOrWhiteSpace(content))
@@ -558,6 +560,7 @@ public partial class MainWindow : Window
                 {
                     CustomerId = customer.Id,
                     Content = content,
+                    Status = nextStatus,
                     CreatedAt = now,
                     UpdatedAt = now,
                 });
@@ -566,7 +569,6 @@ public partial class MainWindow : Window
             }
 
             customer.LastContactAttemptAt = now;
-            var nextStatus = viewModel?.SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
             if (customer.Status != nextStatus)
             {
                 customer.Status = nextStatus;
@@ -601,6 +603,11 @@ public partial class MainWindow : Window
 
         _editingConsultationLogId = logId;
         ConsultationContentTextBox.Text = log.Content;
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.SelectedCustomerStatus = viewModel.CustomerStatusOptions.FirstOrDefault(option => option.Status == log.Status);
+        }
+
         ConsultationContentTextBox.Focus();
         ConsultationContentTextBox.CaretIndex = ConsultationContentTextBox.Text.Length;
         ConsultationLogSaveButton.Content = "수정 저장";

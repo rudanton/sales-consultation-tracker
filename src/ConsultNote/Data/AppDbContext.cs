@@ -81,6 +81,12 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<ConsultationLog>(entity =>
         {
             entity.Property(log => log.Content).IsRequired();
+            entity.Property(log => log.Status)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .HasDefaultValue(CustomerStatus.Consulting)
+                .IsRequired();
+
             entity.Property(log => log.CreatedAt).IsRequired();
             entity.Property(log => log.UpdatedAt).IsRequired();
         });

@@ -70,6 +70,12 @@ namespace ConsultNote.Data.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Consulting");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 

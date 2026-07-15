@@ -604,8 +604,9 @@ public sealed class MainWindowViewModel : ObservableObject
             viewModel.ConsultationLogs.Add(new ConsultationLogItemViewModel
             {
                 Id = log.Id,
+                Status = log.Status,
                 CreatedAtText = log.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                StatusText = FormatStatusName(customer.Status),
+                StatusText = FormatStatusName(log.Status),
                 Content = log.Content,
             });
         }
