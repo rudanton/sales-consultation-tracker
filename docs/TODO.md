@@ -474,7 +474,7 @@
 - [x] 실행 시 업데이트 확인 추가
 - [ ] 업데이트 실패 시 기존 버전 유지 확인
 - [ ] 업데이트 후 앱 재시작 동작 확인
-- [ ] GitHub Actions로 Release 자동 생성 가능성 검토
+- [x] GitHub Actions로 Release 자동 생성 가능성 검토
 
 ---
 

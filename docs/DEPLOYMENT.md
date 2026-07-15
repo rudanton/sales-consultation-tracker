@@ -80,7 +80,21 @@ settings/
 dist/SalesConsultationTracker_yyyyMMdd_HHmm.zip
 ```
 
-GitHub Release를 사용할 경우:
+GitHub Actions 자동 Release를 사용할 경우:
+
+1. 앱 버전을 정한다. 예: `v0.2.1`
+2. 해당 태그를 push한다.
+
+```powershell
+git tag v0.2.1
+git push origin v0.2.1
+```
+
+3. GitHub Actions가 `scripts/publish.ps1`을 실행한다.
+4. `SalesConsultationTracker_v0.2.1.zip`을 생성한다.
+5. 같은 태그의 GitHub Release를 만들고 zip을 asset으로 업로드한다.
+
+수동 Release를 사용할 경우:
 
 1. `scripts/publish.ps1`로 zip을 만든다.
 2. GitHub Release를 생성한다.

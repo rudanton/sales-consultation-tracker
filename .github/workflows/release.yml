@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.2.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Windows zip and publish GitHub Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+          }
+
+          if ($version -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Version must look like v0.2.1. Actual: $version"
+          }
+
+          "tag=$version" >> $env:GITHUB_OUTPUT
+          "plain=$($version.TrimStart('v', 'V'))" >> $env:GITHUB_OUTPUT
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: .\scripts\publish.ps1 -Configuration Release -Runtime win-x64 -Version "${{ steps.version.outputs.tag }}"
+
+      - name: Rename release zip
+        id: package
+        shell: pwsh
+        run: |
+          $source = Get-ChildItem -Path .\dist -Filter "SalesConsultationTracker_*.zip" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if ($null -eq $source) {
+            throw "Release zip was not created."
+          }
+
+          $target = Join-Path $source.DirectoryName "SalesConsultationTracker_${{ steps.version.outputs.tag }}.zip"
+          Move-Item -LiteralPath $source.FullName -Destination $target -Force
+          "zip=$target" >> $env:GITHUB_OUTPUT
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $zip = "${{ steps.package.outputs.zip }}"
+
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            git fetch --tags
+            git rev-parse -q --verify "refs/tags/$tag"
+            if ($LASTEXITCODE -ne 0) {
+              git tag $tag
+              git push origin $tag
+            }
+          }
+
+          $exists = gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip --clobber
+          } else {
+            gh release create $tag $zip --title $tag --generate-notes
+          }

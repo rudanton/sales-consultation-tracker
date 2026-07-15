@@ -1,6 +1,7 @@
 param(
     [string]$Configuration = "Release",
-    [string]$Runtime = "win-x64"
+    [string]$Runtime = "win-x64",
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,22 @@ if ((Test-Path $publishDirectory) -and ((Resolve-Path $publishDirectory).Path -l
     Remove-Item -LiteralPath $publishDirectory -Recurse -Force
 }
 
+$versionProperties = @()
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $normalizedVersion = $Version.Trim().TrimStart("v", "V")
+    $versionParts = $normalizedVersion.Split(".")
+    while ($versionParts.Count -lt 4) {
+        $versionParts += "0"
+    }
+
+    $assemblyVersion = ($versionParts | Select-Object -First 4) -join "."
+    $versionProperties = @(
+        "-p:Version=$normalizedVersion",
+        "-p:AssemblyVersion=$assemblyVersion",
+        "-p:FileVersion=$assemblyVersion"
+    )
+}
+
 dotnet publish $projectPath `
     --configuration $Configuration `
     --runtime $Runtime `
@@ -31,7 +48,12 @@ dotnet publish $projectPath `
     -p:PublishSingleFile=true `
     -p:PublishReadyToRun=false `
     -p:NuGetAudit=false `
+    @versionProperties `
     --output $publishDirectory
+
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE."
+}
 
 if (Test-Path $zipPath) {
     Remove-Item -LiteralPath $zipPath -Force
