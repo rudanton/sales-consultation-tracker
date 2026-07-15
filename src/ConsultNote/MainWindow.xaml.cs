@@ -638,7 +638,11 @@ public partial class MainWindow : Window
 
             dbContext.SaveChanges();
             ClearConsultationLogEditMode();
-            viewModel?.ReloadCustomers(customer.Id);
+            if (viewModel is not null)
+            {
+                viewModel.ReloadCustomers(customer.Id);
+                ResetConsultationStatusInputToDefault(viewModel);
+            }
         }
         catch (Exception ex)
         {
@@ -738,6 +742,12 @@ public partial class MainWindow : Window
         _editingConsultationLogId = null;
         ConsultationContentTextBox.Text = string.Empty;
         ConsultationLogSaveButton.Content = "저장";
+    }
+
+    private static void ResetConsultationStatusInputToDefault(MainWindowViewModel viewModel)
+    {
+        viewModel.SelectedCustomerStatus = viewModel.CustomerStatusOptions.FirstOrDefault(option => option.Status == CustomerStatus.Consulting)
+            ?? viewModel.CustomerStatusOptions.FirstOrDefault();
     }
 
     private void SimilarConditionSearchButton_Click(object sender, RoutedEventArgs e)
