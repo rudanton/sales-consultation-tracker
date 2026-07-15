@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
     private bool _closeToTrayOnClose;
+    private bool _isPreparingUpdate;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
@@ -97,6 +98,8 @@ public partial class MainWindow : Window
 
         Topmost = true;
         Topmost = false;
+
+        _ = CheckForUpdateOnStartup();
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
@@ -278,38 +281,94 @@ public partial class MainWindow : Window
 
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
+        await CheckAndApplyUpdate(showNoUpdateMessage: true, showFailureMessage: true);
+    }
+
+    private async Task CheckForUpdateOnStartup()
+    {
+        if (!string.Equals(Path.GetFileName(Environment.ProcessPath), "SalesConsultationTracker.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await Task.Delay(1500);
+        await CheckAndApplyUpdate(showNoUpdateMessage: false, showFailureMessage: false);
+    }
+
+    private async Task CheckAndApplyUpdate(bool showNoUpdateMessage, bool showFailureMessage)
+    {
+        if (_isPreparingUpdate)
+        {
+            return;
+        }
+
         try
         {
+            var updateService = new AppUpdateService();
             var currentVersion = GetCurrentAppVersion();
-            var result = await new GitHubReleaseUpdateChecker().CheckLatestRelease(currentVersion);
+            var result = await updateService.CheckLatestRelease();
             if (!result.IsSuccess)
             {
-                MessageBox.Show(result.Message, "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (showFailureMessage)
+                {
+                    MessageBox.Show(result.Message, "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    LogUiError(new InvalidOperationException(result.Message), "update-check-error.txt");
+                }
+
                 return;
             }
 
             if (!result.HasUpdate)
             {
-                MessageBox.Show($"현재 최신 버전입니다.\n\n현재 버전: v{currentVersion}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (showNoUpdateMessage)
+                {
+                    MessageBox.Show($"현재 최신 버전입니다.\n\n현재 버전: v{currentVersion}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
                 return;
             }
 
-            var openRelease = MessageBox.Show(
-                $"새 버전이 있습니다.\n\n현재 버전: v{currentVersion}\n최신 버전: v{result.LatestVersion}\n\nGitHub Release 페이지를 열까요?",
+            var applyUpdate = MessageBox.Show(
+                $"새 버전이 있습니다.\n\n현재 버전: v{currentVersion}\n최신 버전: v{result.LatestVersion}\n\n지금 업데이트할까요?\n앱이 종료되고 업데이트 후 다시 실행됩니다.",
                 "Consult Note",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
-            if (openRelease == MessageBoxResult.Yes && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+            if (applyUpdate != MessageBoxResult.Yes)
             {
-                Process.Start(new ProcessStartInfo(result.ReleaseUrl)
-                {
-                    UseShellExecute = true,
-                });
+                return;
             }
+
+            _isPreparingUpdate = true;
+            Cursor = System.Windows.Input.Cursors.Wait;
+
+            var prepareResult = await updateService.PrepareUpdate(result);
+            if (!prepareResult.IsSuccess)
+            {
+                _isPreparingUpdate = false;
+                Cursor = System.Windows.Input.Cursors.Arrow;
+                MessageBox.Show(prepareResult.Message, "Consult Note", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _isClosingForExit = true;
+            DisposeTrayIcon();
+            Close();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"업데이트 확인 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            _isPreparingUpdate = false;
+            Cursor = System.Windows.Input.Cursors.Arrow;
+            if (showFailureMessage)
+            {
+                MessageBox.Show($"업데이트 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            else
+            {
+                LogUiError(ex, "update-check-error.txt");
+            }
         }
     }
 

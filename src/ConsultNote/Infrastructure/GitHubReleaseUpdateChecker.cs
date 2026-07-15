@@ -36,11 +36,19 @@ public sealed class GitHubReleaseUpdateChecker
             return UpdateCheckResult.Failed($"Release 버전 형식을 해석할 수 없습니다. ({release.TagName})");
         }
 
+        var asset = release.Assets
+            .Where(asset => !string.IsNullOrWhiteSpace(asset.BrowserDownloadUrl))
+            .Where(asset => asset.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true)
+            .OrderByDescending(asset => asset.Name?.Contains("SalesConsultationTracker", StringComparison.OrdinalIgnoreCase) == true)
+            .FirstOrDefault();
+
         return new UpdateCheckResult(
             IsSuccess: true,
             HasUpdate: latestVersion > currentVersion,
             LatestVersion: latestVersion,
             ReleaseUrl: release.HtmlUrl,
+            DownloadUrl: asset?.BrowserDownloadUrl,
+            AssetName: asset?.Name,
             Message: string.Empty);
     }
 
@@ -49,6 +57,15 @@ public sealed class GitHubReleaseUpdateChecker
         public string? TagName { get; set; }
 
         public string? HtmlUrl { get; set; }
+
+        public List<GitHubReleaseAssetResponse> Assets { get; set; } = [];
+    }
+
+    private sealed class GitHubReleaseAssetResponse
+    {
+        public string? Name { get; set; }
+
+        public string? BrowserDownloadUrl { get; set; }
     }
 }
 
@@ -57,10 +74,12 @@ public sealed record UpdateCheckResult(
     bool HasUpdate,
     Version? LatestVersion,
     string? ReleaseUrl,
+    string? DownloadUrl,
+    string? AssetName,
     string Message)
 {
     public static UpdateCheckResult Failed(string message)
     {
-        return new UpdateCheckResult(false, false, null, null, message);
+        return new UpdateCheckResult(false, false, null, null, null, null, message);
     }
 }

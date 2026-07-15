@@ -87,21 +87,24 @@ GitHub Release를 사용할 경우:
 3. 생성된 zip을 Release asset으로 업로드한다.
 4. 사용자에게 Release zip 다운로드 링크를 전달한다.
 
-## 앱 내 업데이트 확인
+## 앱 내 업데이트
 
-앱은 `업데이트 확인` 버튼으로 GitHub 최신 Release 버전을 확인할 수 있다.
-새 버전이 있으면 GitHub Release 페이지를 열어 사용자가 zip을 직접 내려받는다.
-현재 단계에서는 앱이 스스로 zip을 다운로드하거나 실행 파일을 교체하지 않는다.
+앱은 실행 시 GitHub 최신 Release 버전을 확인한다.
+새 버전이 있으면 사용자에게 업데이트 여부를 물어보고, 동의 시 Release zip을 다운로드한다.
+다운로드가 끝나면 별도 PowerShell updater를 실행하고 앱을 종료한다.
+updater는 기존 앱 프로세스 종료를 기다린 뒤 zip을 풀어 앱 파일을 덮어쓰고 `SalesConsultationTracker.exe`를 다시 실행한다.
 
-## 향후 자동 업데이트 계획
+상단의 `업데이트 확인` 버튼도 같은 업데이트 적용 흐름을 사용한다.
+최신 버전이면 현재 최신 버전이라는 안내만 표시한다.
 
-실행 파일 자동 교체까지 포함하는 자동 업데이트는 P3 후순위 기능으로 둔다.
-후보 방식은 GitHub Release와 AutoUpdater.NET 조합이다.
+## 자동 업데이트 주의사항
+
+자동 업데이트는 배포용 `SalesConsultationTracker.exe`로 실행 중일 때만 적용한다.
+`dotnet run` 같은 개발 실행에서는 실행 시 자동 업데이트 확인을 건너뛴다.
 
 검토할 항목:
 
 - 앱 버전과 Release 버전 매칭
-- `update.xml` 구조
 - 업데이트 zip 파일 목록
 - 업데이트 실패 시 기존 버전 유지
 - 업데이트 후 앱 재시작 동작
