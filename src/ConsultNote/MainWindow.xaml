@@ -590,7 +590,7 @@
                                                         <ColumnDefinition Width="6" />
                                                         <ColumnDefinition Width="90" />
                                                         <ColumnDefinition Width="6" />
-                                                        <ColumnDefinition Width="84" />
+                                                        <ColumnDefinition Width="*" MinWidth="96" />
                                                     </Grid.ColumnDefinitions>
                                                     <ComboBox x:Name="VehicleBrandComboBox"
                                                               IsEditable="False"
