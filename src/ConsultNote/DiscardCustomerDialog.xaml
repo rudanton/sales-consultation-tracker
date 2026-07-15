@@ -6,10 +6,10 @@
         Height="230"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Background="#F5F7FA"
+        Background="{StaticResource AppBackgroundBrush}"
         FontFamily="Segoe UI, Malgun Gothic">
-    <Border Background="#FFFFFF"
-            BorderBrush="#D7DEE8"
+    <Border Background="{StaticResource PanelBackgroundBrush}"
+            BorderBrush="{StaticResource ThemeBorderBrush}"
             BorderThickness="1"
             CornerRadius="6"
             Padding="18"
