@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using ConsultNote.Data;
 using ConsultNote.Data.Entities;
 using ConsultNote.Infrastructure;
@@ -21,6 +23,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     {
         InitializeComponent();
         DataContext = this;
+        PreviewKeyDown += VehicleResourceManagementDialog_PreviewKeyDown;
         LoadResources();
     }
 
@@ -68,6 +71,15 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     private void AddButton_Click(object sender, RoutedEventArgs e)
     {
         AddVehicleResource(sourceFilePath: null);
+    }
+
+    private void VehicleResourceManagementDialog_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.V && Clipboard.ContainsImage())
+        {
+            e.Handled = true;
+            AddClipboardImageAsVehicleResource();
+        }
     }
 
     private void EditButton_Click(object sender, RoutedEventArgs e)
@@ -221,6 +233,43 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         {
             MessageBox.Show($"저장 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
+        }
+    }
+
+    private void AddClipboardImageAsVehicleResource()
+    {
+        string? tempFilePath = null;
+        try
+        {
+            var image = Clipboard.GetImage();
+            if (image is null)
+            {
+                return;
+            }
+
+            var tempDirectory = Path.Combine(AppPaths.StorageDirectory, "clipboard");
+            Directory.CreateDirectory(tempDirectory);
+            tempFilePath = Path.Combine(tempDirectory, $"{DateTime.Now:yyyyMMdd_HHmmssfff}_vehicle_resource_clipboard.png");
+
+            using (var stream = File.Create(tempFilePath))
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(image));
+                encoder.Save(stream);
+            }
+
+            AddVehicleResource(tempFilePath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"클립보드 이미지 추가 중 오류가 발생했습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            if (tempFilePath is not null)
+            {
+                TryDeleteStoredFile(tempFilePath);
+            }
         }
     }
 
