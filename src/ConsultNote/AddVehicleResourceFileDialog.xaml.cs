@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using ConsultNote.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public partial class AddVehicleResourceFileDialog : Window
 
     private readonly IReadOnlyDictionary<string, int> _nextOrdersByFileType;
     private readonly bool _isEditMode;
+    private bool _isUpdatingVehicleOptions;
 
     public AddVehicleResourceFileDialog(
         IReadOnlyDictionary<string, int>? nextOrdersByFileType = null,
@@ -37,6 +39,8 @@ public partial class AddVehicleResourceFileDialog : Window
     {
         InitializeComponent();
         PreviewKeyDown += AddVehicleResourceFileDialog_PreviewKeyDown;
+        VehicleBrandComboBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(VehicleBrandTextBox_TextChanged));
+        VehicleNameComboBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(VehicleNameTextBox_TextChanged));
         _nextOrdersByFileType = nextOrdersByFileType ?? new Dictionary<string, int>();
         _isEditMode = isEditMode;
 
@@ -105,11 +109,41 @@ public partial class AddVehicleResourceFileDialog : Window
 
     private void VehicleBrandComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_isUpdatingVehicleOptions)
+        {
+            return;
+        }
+
         RefreshVehicleNames(preferredVehicleName: null, preferredFuelType: null);
     }
 
     private void VehicleNameComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_isUpdatingVehicleOptions)
+        {
+            return;
+        }
+
+        RefreshFuelTypes(preferredFuelType: null);
+    }
+
+    private void VehicleBrandTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdatingVehicleOptions)
+        {
+            return;
+        }
+
+        RefreshVehicleNames(preferredVehicleName: null, preferredFuelType: null);
+    }
+
+    private void VehicleNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdatingVehicleOptions)
+        {
+            return;
+        }
+
         RefreshFuelTypes(preferredFuelType: null);
     }
 
@@ -161,30 +195,27 @@ public partial class AddVehicleResourceFileDialog : Window
 
     private void LoadVehicleOptions(string? preferredBrand, string? preferredVehicleName, string? preferredFuelType)
     {
+        _isUpdatingVehicleOptions = true;
         using var dbContext = new AppDbContext();
-        var vehicles = dbContext.Vehicles
+        var brands = dbContext.Vehicles
             .AsNoTracking()
-            .Where(vehicle => vehicle.IsActive)
-            .OrderBy(vehicle => vehicle.Brand)
-            .ThenBy(vehicle => vehicle.Name)
-            .Select(vehicle => new VehicleOption(vehicle.Brand, vehicle.Name, vehicle.FuelTypes))
-            .ToList();
-
-        VehicleBrandComboBox.ItemsSource = vehicles
-            .Select(vehicle => vehicle.Brand)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Where(vehicle => vehicle.IsActive && vehicle.Brand != null)
+            .Select(vehicle => vehicle.Brand!)
             .Distinct()
             .OrderBy(value => value)
             .ToList();
 
+        VehicleBrandComboBox.ItemsSource = brands;
         VehicleBrandComboBox.Text = preferredBrand ?? string.Empty;
+        _isUpdatingVehicleOptions = false;
         RefreshVehicleNames(preferredVehicleName, preferredFuelType);
     }
 
     private void RefreshVehicleNames(string? preferredVehicleName, string? preferredFuelType)
     {
+        _isUpdatingVehicleOptions = true;
         using var dbContext = new AppDbContext();
-        var selectedBrand = TrimToNull(VehicleBrandComboBox.Text);
+        var selectedBrand = GetSelectedComboText(VehicleBrandComboBox);
         var vehicleNames = dbContext.Vehicles
             .AsNoTracking()
             .Where(vehicle => vehicle.IsActive)
@@ -199,15 +230,22 @@ public partial class AddVehicleResourceFileDialog : Window
         {
             VehicleNameComboBox.Text = preferredVehicleName;
         }
+        else if (TrimToNull(VehicleNameComboBox.Text) is { } currentVehicleName && !vehicleNames.Contains(currentVehicleName))
+        {
+            VehicleNameComboBox.SelectedItem = null;
+            VehicleNameComboBox.Text = string.Empty;
+        }
 
+        _isUpdatingVehicleOptions = false;
         RefreshFuelTypes(preferredFuelType);
     }
 
     private void RefreshFuelTypes(string? preferredFuelType)
     {
+        _isUpdatingVehicleOptions = true;
         using var dbContext = new AppDbContext();
-        var selectedBrand = TrimToNull(VehicleBrandComboBox.Text);
-        var selectedVehicleName = TrimToNull(VehicleNameComboBox.Text);
+        var selectedBrand = GetSelectedComboText(VehicleBrandComboBox);
+        var selectedVehicleName = GetSelectedComboText(VehicleNameComboBox);
         if (selectedBrand is null && selectedVehicleName is not null)
         {
             selectedBrand = TryInferBrand(dbContext, selectedVehicleName);
@@ -234,6 +272,13 @@ public partial class AddVehicleResourceFileDialog : Window
         {
             FuelTypeComboBox.Text = preferredFuelType;
         }
+        else if (TrimToNull(FuelTypeComboBox.Text) is { } currentFuelType && !fuelTypes.Contains(currentFuelType))
+        {
+            FuelTypeComboBox.SelectedItem = null;
+            FuelTypeComboBox.Text = string.Empty;
+        }
+
+        _isUpdatingVehicleOptions = false;
     }
 
     private void UpdateCustomFileTypeVisibility()
@@ -273,5 +318,8 @@ public partial class AddVehicleResourceFileDialog : Window
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
-    private sealed record VehicleOption(string? Brand, string Name, string? FuelTypes);
+    private static string? GetSelectedComboText(ComboBox comboBox)
+    {
+        return TrimToNull(comboBox.SelectedItem as string) ?? TrimToNull(comboBox.Text);
+    }
 }
