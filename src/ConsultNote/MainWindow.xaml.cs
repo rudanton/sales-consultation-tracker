@@ -26,12 +26,14 @@ public partial class MainWindow : Window
     private const string DeliveryRegionDetailPlaceholder = "상세 지역";
     private readonly GridLength _openSidebarWidth = new(360);
     private readonly GridLength _closedSidebarWidth = new(94);
+    private readonly Dictionary<int, ConsultationDraft> _consultationDrafts = [];
     private int? _currentSelectedCustomerId;
     private int? _editingConsultationLogId;
     private bool _isSidebarOpen;
     private bool _isClosingForExit;
     private bool _closeToTrayOnClose;
     private bool _isPreparingUpdate;
+    private bool _isRestoringConsultationDraft;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
     public MainWindow()
@@ -46,6 +48,7 @@ public partial class MainWindow : Window
         InitializeTrayIcon();
         EnsureFileListOptions();
         UpdateMileageCustomInput();
+        ConsultationContentTextBox.TextChanged += ConsultationContentTextBox_TextChanged;
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
@@ -454,6 +457,16 @@ public partial class MainWindow : Window
         ConsultationLogSaveButton.Focus();
     }
 
+    private void ConsultationContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isRestoringConsultationDraft)
+        {
+            return;
+        }
+
+        SaveCurrentConsultationDraft();
+    }
+
     private void ConsultationExportButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryGetMileageValue(out _))
@@ -746,9 +759,28 @@ public partial class MainWindow : Window
 
     private void ClearConsultationLogEditMode()
     {
+        ClearConsultationLogEditMode(removeDraft: true);
+    }
+
+    private void ClearConsultationLogEditMode(bool removeDraft)
+    {
+        var selectedCustomerId = GetSelectedCustomer()?.Id;
+        if (removeDraft && selectedCustomerId is not null)
+        {
+            _consultationDrafts.Remove(selectedCustomerId.Value);
+        }
+
         _editingConsultationLogId = null;
-        ConsultationContentTextBox.Text = string.Empty;
-        ConsultationLogSaveButton.Content = "저장";
+        _isRestoringConsultationDraft = true;
+        try
+        {
+            ConsultationContentTextBox.Text = string.Empty;
+            ConsultationLogSaveButton.Content = "저장";
+        }
+        finally
+        {
+            _isRestoringConsultationDraft = false;
+        }
     }
 
     private static void ResetConsultationStatusInputToDefault(MainWindowViewModel viewModel)
@@ -887,14 +919,21 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedCustomer))
         {
+            SaveCurrentConsultationDraft(_currentSelectedCustomerId);
             var selectedCustomerId = GetSelectedCustomer()?.Id;
             var isDifferentCustomer = selectedCustomerId != _currentSelectedCustomerId;
             _currentSelectedCustomerId = selectedCustomerId;
 
             RefreshSelectedCustomerUi(scrollConditionToTop: isDifferentCustomer);
-            if (isDifferentCustomer)
+            if (selectedCustomerId is not null)
             {
-                ClearConsultationLogEditMode();
+                Dispatcher.BeginInvoke(
+                    () => RestoreConsultationDraft(selectedCustomerId.Value),
+                    DispatcherPriority.ContextIdle);
+            }
+            else if (isDifferentCustomer)
+            {
+                ClearConsultationLogEditMode(removeDraft: false);
             }
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.SelectedFile))
@@ -902,6 +941,58 @@ public partial class MainWindow : Window
             UpdateSelectedFilePreview();
         }
 
+    }
+
+    private void SaveCurrentConsultationDraft(int? customerId = null)
+    {
+        var selectedCustomerId = customerId ?? GetSelectedCustomer()?.Id;
+        if (selectedCustomerId is null)
+        {
+            return;
+        }
+
+        var content = ConsultationContentTextBox.Text;
+        if (string.IsNullOrWhiteSpace(content) && _editingConsultationLogId is null)
+        {
+            _consultationDrafts.Remove(selectedCustomerId.Value);
+            return;
+        }
+
+        var status = GetViewModel()?.SelectedCustomerStatus?.Status ?? CustomerStatus.Consulting;
+        _consultationDrafts[selectedCustomerId.Value] = new ConsultationDraft(
+            content,
+            _editingConsultationLogId,
+            status,
+            ConsultationLogSaveButton.Content?.ToString() ?? "저장");
+    }
+
+    private void RestoreConsultationDraft(int customerId)
+    {
+        _isRestoringConsultationDraft = true;
+        try
+        {
+            if (!_consultationDrafts.TryGetValue(customerId, out var draft))
+            {
+                _editingConsultationLogId = null;
+                ConsultationContentTextBox.Text = string.Empty;
+                ConsultationLogSaveButton.Content = "저장";
+                return;
+            }
+
+            _editingConsultationLogId = draft.EditingLogId;
+            ConsultationContentTextBox.Text = draft.Content;
+            ConsultationLogSaveButton.Content = draft.SaveButtonContent;
+            if (GetViewModel() is { } viewModel)
+            {
+                viewModel.SelectedCustomerStatus = viewModel.CustomerStatusOptions
+                    .FirstOrDefault(option => option.Status == draft.Status)
+                    ?? viewModel.SelectedCustomerStatus;
+            }
+        }
+        finally
+        {
+            _isRestoringConsultationDraft = false;
+        }
     }
 
     private void AddCustomerFileButton_Click(object sender, RoutedEventArgs e)
@@ -2469,4 +2560,10 @@ public partial class MainWindow : Window
             // Keep the user-facing message path alive even if logging fails.
         }
     }
+
+    private sealed record ConsultationDraft(
+        string Content,
+        int? EditingLogId,
+        CustomerStatus Status,
+        string SaveButtonContent);
 }
