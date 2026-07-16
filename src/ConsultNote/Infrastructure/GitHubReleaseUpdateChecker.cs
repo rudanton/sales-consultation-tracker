@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ConsultNote.Infrastructure;
 
@@ -54,17 +55,22 @@ public sealed class GitHubReleaseUpdateChecker
 
     private sealed class GitHubReleaseResponse
     {
+        [JsonPropertyName("tag_name")]
         public string? TagName { get; set; }
 
+        [JsonPropertyName("html_url")]
         public string? HtmlUrl { get; set; }
 
+        [JsonPropertyName("assets")]
         public List<GitHubReleaseAssetResponse> Assets { get; set; } = [];
     }
 
     private sealed class GitHubReleaseAssetResponse
     {
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonPropertyName("browser_download_url")]
         public string? BrowserDownloadUrl { get; set; }
     }
 }
