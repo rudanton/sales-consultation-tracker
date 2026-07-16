@@ -169,6 +169,14 @@ public partial class MainWindow : Window
         }
     }
 
+    internal void RestoreFromExternalActivation()
+    {
+        RestoreFromTray();
+
+        Topmost = true;
+        Topmost = false;
+    }
+
     private void ExitFromTray()
     {
         _isClosingForExit = true;

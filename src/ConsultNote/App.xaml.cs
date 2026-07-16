@@ -1,5 +1,6 @@
 using ConsultNote.Infrastructure;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -9,12 +10,24 @@ namespace ConsultNote;
 
 public partial class App : Application
 {
+    private const string SingleInstanceMutexName = "Local\\ConsultNote_SalesConsultationTracker_SingleInstance";
+    private const string RestoreEventName = "Local\\ConsultNote_SalesConsultationTracker_Restore";
+    private Mutex? _singleInstanceMutex;
+    private EventWaitHandle? _restoreEvent;
+    private Thread? _restoreListenerThread;
+    private bool _isShuttingDown;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
+        if (!TryStartSingleInstance())
+        {
+            Shutdown();
+            return;
+        }
 
         base.OnStartup(e);
         var splashWindow = new SplashWindow();
@@ -49,6 +62,88 @@ public partial class App : Application
         MainWindow = mainWindow;
         mainWindow.Show();
         splashWindow.Close();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _isShuttingDown = true;
+        _restoreEvent?.Set();
+        _restoreEvent?.Dispose();
+        try
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+        }
+        catch (ApplicationException)
+        {
+            // The mutex may already be released during early shutdown.
+        }
+
+        _singleInstanceMutex?.Dispose();
+        base.OnExit(e);
+    }
+
+    private bool TryStartSingleInstance()
+    {
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out var isFirstInstance);
+        if (!isFirstInstance)
+        {
+            SignalExistingInstance();
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+            return false;
+        }
+
+        _restoreEvent = new EventWaitHandle(false, EventResetMode.AutoReset, RestoreEventName);
+        StartRestoreListener();
+        return true;
+    }
+
+    private static void SignalExistingInstance()
+    {
+        try
+        {
+            using var restoreEvent = EventWaitHandle.OpenExisting(RestoreEventName);
+            restoreEvent.Set();
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+            // The first instance may still be starting up. Nothing else is needed here.
+        }
+    }
+
+    private void StartRestoreListener()
+    {
+        if (_restoreEvent is null)
+        {
+            return;
+        }
+
+        _restoreListenerThread = new Thread(() =>
+        {
+            while (!_isShuttingDown)
+            {
+                _restoreEvent.WaitOne();
+                if (_isShuttingDown)
+                {
+                    return;
+                }
+
+                Dispatcher.BeginInvoke(RestoreMainWindow, DispatcherPriority.Normal);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "ConsultNoteRestoreListener",
+        };
+        _restoreListenerThread.Start();
+    }
+
+    private void RestoreMainWindow()
+    {
+        if (MainWindow is MainWindow mainWindow)
+        {
+            mainWindow.RestoreFromExternalActivation();
+        }
     }
 
     private static void ProcessPendingUi()
