@@ -47,10 +47,19 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     private void LoadResources(int? selectedResourceId = null)
     {
         using var dbContext = new AppDbContext();
+        var vehicles = dbContext.Vehicles
+            .AsNoTracking()
+            .Where(vehicle => vehicle.IsActive)
+            .ToList();
         var resources = dbContext.VehicleResourceFiles
             .AsNoTracking()
             .AsEnumerable()
-            .OrderBy(file => file.VehicleName)
+            .OrderBy(file => VehicleSort.GetBrandOrder(file.VehicleBrand))
+            .ThenBy(file => VehicleSort.GetBrandSortName(file.VehicleBrand))
+            .ThenBy(file => GetResourceVehicleClassOrder(file, vehicles))
+            .ThenBy(file => GetResourcePowertrainOrder(file, vehicles))
+            .ThenBy(file => file.VehicleName)
+            .ThenBy(file => VehicleSort.GetFuelTypeOrder(file.FuelType))
             .ThenBy(file => GetDisplayFileType(file.FileType, file.CustomFileType))
             .ThenBy(file => file.FileOrder)
             .ThenByDescending(file => file.CreatedAt)
@@ -415,6 +424,30 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
                 .Where(value => !string.IsNullOrWhiteSpace(value))),
             CreatedAt = file.CreatedAt,
         };
+    }
+
+    private static int GetResourceVehicleClassOrder(VehicleResourceFile file, IReadOnlyList<Vehicle> vehicles)
+    {
+        return VehicleSort.GetVehicleClassOrder(FindVehicle(file, vehicles)?.Memo);
+    }
+
+    private static int GetResourcePowertrainOrder(VehicleResourceFile file, IReadOnlyList<Vehicle> vehicles)
+    {
+        return VehicleSort.GetPowertrainOrder(FindVehicle(file, vehicles)?.FuelTypes ?? file.FuelType);
+    }
+
+    private static Vehicle? FindVehicle(VehicleResourceFile file, IReadOnlyList<Vehicle> vehicles)
+    {
+        if (string.IsNullOrWhiteSpace(file.VehicleName))
+        {
+            return null;
+        }
+
+        return vehicles.FirstOrDefault(vehicle =>
+                string.Equals(vehicle.Brand, file.VehicleBrand, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(vehicle.Name, file.VehicleName, StringComparison.OrdinalIgnoreCase)) ??
+            vehicles.FirstOrDefault(vehicle =>
+                string.Equals(vehicle.Name, file.VehicleName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static Dictionary<string, int> GetNextOrdersByFileType(AppDbContext dbContext)

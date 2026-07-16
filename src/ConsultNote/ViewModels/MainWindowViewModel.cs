@@ -502,14 +502,20 @@ public sealed class MainWindowViewModel : ObservableObject
         foreach (var brand in _vehicleOptions
             .Select(vehicle => vehicle.Brand)
             .Distinct()
-            .OrderBy(GetBrandOrder)
-            .ThenBy(brand => brand))
+            .OrderBy(VehicleSort.GetBrandOrder)
+            .ThenBy(VehicleSort.GetBrandSortName))
         {
             VehicleBrands.Add(brand);
         }
 
         CustomerVehicleNames.Clear();
-        foreach (var name in _vehicleOptions.Select(vehicle => vehicle.Name).Distinct().OrderBy(name => name))
+        foreach (var name in _vehicleOptions
+            .GroupBy(vehicle => vehicle.Name)
+            .Select(group => group.First())
+            .OrderBy(vehicle => VehicleSort.GetVehicleClassOrder(vehicle.Memo))
+            .ThenBy(vehicle => VehicleSort.GetPowertrainOrder(vehicle.FuelTypes))
+            .ThenBy(vehicle => vehicle.Name)
+            .Select(vehicle => vehicle.Name))
         {
             CustomerVehicleNames.Add(name);
         }
@@ -530,7 +536,8 @@ public sealed class MainWindowViewModel : ObservableObject
             .Where(vehicle => vehicle.Brand == SelectedVehicleBrand)
             .GroupBy(vehicle => vehicle.Name)
             .Select(group => group.First())
-            .OrderBy(GetVehicleClassOrder)
+            .OrderBy(vehicle => VehicleSort.GetVehicleClassOrder(vehicle.Memo))
+            .ThenBy(vehicle => VehicleSort.GetPowertrainOrder(vehicle.FuelTypes))
             .ThenBy(vehicle => vehicle.Name)
             .Select(vehicle => vehicle.Name))
         {
@@ -552,9 +559,10 @@ public sealed class MainWindowViewModel : ObservableObject
 
         var fuelTypes = _vehicleOptions
             .Where(vehicle => vehicle.Brand == SelectedVehicleBrand && vehicle.Name == SelectedVehicleName)
-            .SelectMany(vehicle => SplitFuelTypes(vehicle.FuelTypes))
+            .SelectMany(vehicle => VehicleSort.SplitFuelTypes(vehicle.FuelTypes))
             .Distinct()
-            .OrderBy(fuelType => fuelType);
+            .OrderBy(VehicleSort.GetFuelTypeOrder)
+            .ThenBy(fuelType => fuelType);
 
         foreach (var fuelType in fuelTypes)
         {
@@ -803,91 +811,6 @@ public sealed class MainWindowViewModel : ObservableObject
             "Consult Note",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
-    }
-
-    private static IEnumerable<string> SplitFuelTypes(string? fuelTypes)
-    {
-        return string.IsNullOrWhiteSpace(fuelTypes)
-            ? []
-            : fuelTypes
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(fuelType => !string.IsNullOrWhiteSpace(fuelType));
-    }
-
-    private static int GetBrandOrder(string brand)
-    {
-        return brand switch
-        {
-            "현대" => 0,
-            "기아" => 1,
-            "제네시스" => 2,
-            "KGM" or "kgm" => 3,
-            "르노" => 4,
-            "쉐보레" => 5,
-            "테슬라" => 6,
-            _ => 100,
-        };
-    }
-
-    private static int GetVehicleClassOrder(VehicleOption vehicle)
-    {
-        var memo = vehicle.Memo ?? string.Empty;
-        if (memo.Contains("경차", StringComparison.OrdinalIgnoreCase))
-        {
-            return 0;
-        }
-
-        if (memo.Contains("소형SUV", StringComparison.OrdinalIgnoreCase))
-        {
-            return 20;
-        }
-
-        if (memo.Contains("준중형SUV", StringComparison.OrdinalIgnoreCase))
-        {
-            return 21;
-        }
-
-        if (memo.Contains("중형SUV", StringComparison.OrdinalIgnoreCase))
-        {
-            return 22;
-        }
-
-        if (memo.Contains("대형SUV", StringComparison.OrdinalIgnoreCase))
-        {
-            return 23;
-        }
-
-        if (memo.Contains("소형", StringComparison.OrdinalIgnoreCase))
-        {
-            return 1;
-        }
-
-        if (memo.Contains("준중형", StringComparison.OrdinalIgnoreCase))
-        {
-            return 2;
-        }
-
-        if (memo.Contains("중형", StringComparison.OrdinalIgnoreCase))
-        {
-            return 3;
-        }
-
-        if (memo.Contains("준대형", StringComparison.OrdinalIgnoreCase))
-        {
-            return 4;
-        }
-
-        if (memo.Contains("대형", StringComparison.OrdinalIgnoreCase))
-        {
-            return 5;
-        }
-
-        if (memo.Contains("RV", StringComparison.OrdinalIgnoreCase) || memo.Contains("MPV", StringComparison.OrdinalIgnoreCase))
-        {
-            return 30;
-        }
-
-        return 90;
     }
 
     private sealed record VehicleOption(string Brand, string Name, string? FuelTypes, string? Memo);

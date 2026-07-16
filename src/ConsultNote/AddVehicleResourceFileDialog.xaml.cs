@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using ConsultNote.Data;
+using ConsultNote.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 
@@ -202,7 +203,8 @@ public partial class AddVehicleResourceFileDialog : Window
             .Where(vehicle => vehicle.IsActive && vehicle.Brand != null)
             .Select(vehicle => vehicle.Brand!)
             .Distinct()
-            .OrderBy(value => value)
+            .OrderBy(VehicleSort.GetBrandOrder)
+            .ThenBy(VehicleSort.GetBrandSortName)
             .ToList();
 
         VehicleBrandComboBox.ItemsSource = brands;
@@ -220,9 +222,13 @@ public partial class AddVehicleResourceFileDialog : Window
             .AsNoTracking()
             .Where(vehicle => vehicle.IsActive)
             .Where(vehicle => selectedBrand == null || vehicle.Brand == selectedBrand)
-            .OrderBy(vehicle => vehicle.Name)
+            .AsEnumerable()
+            .GroupBy(vehicle => vehicle.Name)
+            .Select(group => group.First())
+            .OrderBy(vehicle => VehicleSort.GetVehicleClassOrder(vehicle.Memo))
+            .ThenBy(vehicle => VehicleSort.GetPowertrainOrder(vehicle.FuelTypes))
+            .ThenBy(vehicle => vehicle.Name)
             .Select(vehicle => vehicle.Name)
-            .Distinct()
             .ToList();
 
         VehicleNameComboBox.ItemsSource = vehicleNames;
@@ -262,9 +268,10 @@ public partial class AddVehicleResourceFileDialog : Window
             .Where(vehicle => selectedVehicleName == null || vehicle.Name == selectedVehicleName)
             .Select(vehicle => vehicle.FuelTypes)
             .AsEnumerable()
-            .SelectMany(SplitFuelTypes)
+            .SelectMany(VehicleSort.SplitFuelTypes)
             .Distinct()
-            .OrderBy(value => value)
+            .OrderBy(VehicleSort.GetFuelTypeOrder)
+            .ThenBy(value => value)
             .ToList();
 
         FuelTypeComboBox.ItemsSource = fuelTypes;
@@ -291,13 +298,6 @@ public partial class AddVehicleResourceFileDialog : Window
         FileOrderTextBox.Text = _nextOrdersByFileType.TryGetValue(FileType, out var nextOrder)
             ? nextOrder.ToString()
             : "1";
-    }
-
-    private static IEnumerable<string> SplitFuelTypes(string? fuelTypes)
-    {
-        return string.IsNullOrWhiteSpace(fuelTypes)
-            ? []
-            : fuelTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static string? TryInferBrand(AppDbContext dbContext, string vehicleName)
