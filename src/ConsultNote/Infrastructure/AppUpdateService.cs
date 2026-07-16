@@ -39,22 +39,22 @@ public sealed class AppUpdateService
 
         var scriptPath = Path.Combine(updatesDirectory, "apply-update.ps1");
         await File.WriteAllTextAsync(scriptPath, BuildUpdaterScript(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        var launcherPath = Path.Combine(updatesDirectory, "apply-update.cmd");
 
         var appDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var arguments =
-            $"-NoProfile -ExecutionPolicy Bypass -File {Quote(scriptPath)} " +
-            $"-ZipPath {Quote(zipPath)} " +
-            $"-AppDir {Quote(appDirectory)} " +
-            $"-ExePath {Quote(processPath)} " +
-            $"-ProcessId {Environment.ProcessId}";
+        var launcherLogPath = Path.Combine(AppPaths.LogsDirectory, "update-launcher.log");
+        await File.WriteAllTextAsync(
+            launcherPath,
+            BuildUpdaterLauncher(scriptPath, zipPath, appDirectory, processPath, launcherLogPath, Environment.ProcessId),
+            Encoding.Default);
 
         Process.Start(new ProcessStartInfo
         {
-            FileName = "powershell.exe",
-            Arguments = arguments,
+            FileName = "cmd.exe",
+            Arguments = $"/c \"\"{launcherPath}\"\"",
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = appDirectory,
+            WorkingDirectory = updatesDirectory,
         });
 
         return UpdatePrepareResult.Success();
@@ -94,19 +94,33 @@ param(
 $ErrorActionPreference = "Stop"
 $preserveNames = @("consultnote.db", "storage", "backup", "logs", "settings")
 $logDir = Join-Path $AppDir "logs"
+$applyLogPath = Join-Path $logDir "update-apply.log"
 $extractDir = Join-Path ([System.IO.Path]::GetTempPath()) ("ConsultNoteUpdate_" + [System.Guid]::NewGuid().ToString("N"))
+
+function Write-UpdateLog {
+    param([string]$Message)
+    Add-Content -LiteralPath $applyLogPath -Value ("[{0:yyyy-MM-dd HH:mm:ss}] {1}" -f (Get-Date), $Message) -Encoding UTF8
+}
 
 try {
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+    Write-UpdateLog "start"
+    Write-UpdateLog "zip=$ZipPath"
+    Write-UpdateLog "appDir=$AppDir"
+    Write-UpdateLog "exePath=$ExePath"
 
     try {
+        Write-UpdateLog "waiting for process $ProcessId"
         Wait-Process -Id $ProcessId -Timeout 30 -ErrorAction SilentlyContinue
     } catch {
+        Write-UpdateLog "wait skipped: $($_.Exception.Message)"
     }
 
+    Write-UpdateLog "extracting"
     New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $extractDir -Force
 
+    Write-UpdateLog "copying files"
     Get-ChildItem -LiteralPath $extractDir -Force | ForEach-Object {
         if (-not ($preserveNames -contains $_.Name)) {
             $destination = Join-Path $AppDir $_.Name
@@ -118,11 +132,15 @@ try {
         }
     }
 
+    Write-UpdateLog "cleanup"
     Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
+    Write-UpdateLog "restart"
     Start-Process -FilePath $ExePath -WorkingDirectory $AppDir
+    Write-UpdateLog "done"
 } catch {
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     $_ | Out-String | Set-Content -LiteralPath (Join-Path $logDir "update-error.txt") -Encoding UTF8
+    Write-UpdateLog "error: $($_.Exception.Message)"
 
     if (Test-Path -LiteralPath $ExePath) {
         Start-Process -FilePath $ExePath -WorkingDirectory $AppDir
@@ -135,9 +153,27 @@ try {
 """;
     }
 
-    private static string Quote(string value)
+    private static string BuildUpdaterLauncher(
+        string scriptPath,
+        string zipPath,
+        string appDirectory,
+        string processPath,
+        string logPath,
+        int processId)
     {
-        return $"'{value.Replace("'", "''", StringComparison.Ordinal)}'";
+        return $"""
+@echo off
+setlocal
+echo [%date% %time%] start > "{EscapeCmd(logPath)}"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "{EscapeCmd(scriptPath)}" -ZipPath "{EscapeCmd(zipPath)}" -AppDir "{EscapeCmd(appDirectory)}" -ExePath "{EscapeCmd(processPath)}" -ProcessId {processId} >> "{EscapeCmd(logPath)}" 2>&1
+echo [%date% %time%] exit %ERRORLEVEL% >> "{EscapeCmd(logPath)}"
+endlocal
+""";
+    }
+
+    private static string EscapeCmd(string value)
+    {
+        return value.Replace("\"", "\"\"", StringComparison.Ordinal);
     }
 
     private static string SanitizeFileName(string fileName)
