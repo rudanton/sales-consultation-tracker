@@ -1,6 +1,7 @@
 using ConsultNote.Infrastructure;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace ConsultNote;
 
@@ -16,12 +17,19 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
         base.OnStartup(e);
+        var splashWindow = new SplashWindow();
+        splashWindow.Show();
+        ProcessPendingUi();
+
         try
         {
+            splashWindow.SetStatus("데이터베이스 확인 중...");
+            ProcessPendingUi();
             AppStartup.Initialize();
         }
         catch (Exception ex)
         {
+            splashWindow.Close();
             TryWriteStartupErrorLog(ex);
 
             MessageBox.Show(
@@ -34,9 +42,20 @@ public partial class App : Application
             return;
         }
 
+        splashWindow.SetStatus("화면 준비 중...");
+        ProcessPendingUi();
+
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;
         mainWindow.Show();
+        splashWindow.Close();
+    }
+
+    private static void ProcessPendingUi()
+    {
+        Current.Dispatcher.Invoke(
+            DispatcherPriority.Background,
+            new Action(() => { }));
     }
 
     private static void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
