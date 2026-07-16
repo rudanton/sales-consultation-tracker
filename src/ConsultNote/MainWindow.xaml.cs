@@ -432,17 +432,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (ConsultationContentTextBox.IsKeyboardFocusWithin)
+        if (GetSelectedCustomer() is not null)
         {
             e.Handled = true;
             ConsultationLogSaveButton_Click(ConsultationLogSaveButton, new RoutedEventArgs());
-            return;
-        }
-
-        if (BasicInfoPanel.IsKeyboardFocusWithin || ConditionFormPanel.IsKeyboardFocusWithin)
-        {
-            e.Handled = true;
-            ConditionFormSaveButton_Click(this, new RoutedEventArgs());
         }
     }
 
@@ -540,41 +533,7 @@ public partial class MainWindow : Window
 
     private void ConditionFormSaveButton_Click(object sender, RoutedEventArgs e)
     {
-        var selectedCustomer = GetSelectedCustomer();
-        if (selectedCustomer is null)
-        {
-            return;
-        }
-
-        if (!TryGetMileageValue(out var mileage))
-        {
-            return;
-        }
-
-        try
-        {
-            using var dbContext = new AppDbContext();
-            var customer = dbContext.Customers.FirstOrDefault(item => item.Id == selectedCustomer.Id);
-            if (customer is null)
-            {
-                return;
-            }
-
-            if (!TrySaveBasicInfoToCustomer(customer))
-            {
-                return;
-            }
-
-            SaveConditionFormToCustomer(customer, mileage);
-            customer.UpdatedAt = DateTime.Now;
-
-            dbContext.SaveChanges();
-            GetViewModel()?.ReloadCustomers(customer.Id);
-        }
-        catch (Exception ex)
-        {
-            ShowDatabaseSaveError(ex);
-        }
+        ConsultationLogSaveButton_Click(ConsultationLogSaveButton, e);
     }
 
     private void ConsultationLogSaveButton_Click(object sender, RoutedEventArgs e)
