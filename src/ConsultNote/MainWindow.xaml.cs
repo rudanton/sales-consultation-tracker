@@ -2306,13 +2306,14 @@ public partial class MainWindow : Window
 
     private string GetInitialCostText()
     {
-        return NoInitialCostCheckBox.IsChecked == true
-            ? "없음"
-            : string.Join(" / ", new[]
-            {
-                TrimToNull(PrepaymentTextBox.Text),
-                TrimToNull(DepositTextBox.Text),
-            }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        var parts = new[]
+        {
+            NoInitialCostCheckBox.IsChecked == true ? "없음" : null,
+            TrimToNull(PrepaymentTextBox.Text),
+            TrimToNull(DepositTextBox.Text),
+        };
+
+        return string.Join(" / ", parts.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
     private string GetMileageSelectedText()
@@ -2468,17 +2469,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        NoInitialCostCheckBox.IsChecked = initialCost == "없음";
-        if (NoInitialCostCheckBox.IsChecked == true)
-        {
-            PrepaymentTextBox.Text = string.Empty;
-            DepositTextBox.Text = string.Empty;
-            return;
-        }
-
         var parts = initialCost.Split(" / ", StringSplitOptions.TrimEntries);
-        PrepaymentTextBox.Text = parts.ElementAtOrDefault(0) ?? string.Empty;
-        DepositTextBox.Text = parts.ElementAtOrDefault(1) ?? string.Empty;
+        NoInitialCostCheckBox.IsChecked = parts.Any(part => part == "없음");
+        var costParts = parts.Where(part => part != "없음").ToList();
+        PrepaymentTextBox.Text = costParts.ElementAtOrDefault(0) ?? string.Empty;
+        DepositTextBox.Text = costParts.ElementAtOrDefault(1) ?? string.Empty;
     }
 
     private void SetOwnerType(string? ownerType)
