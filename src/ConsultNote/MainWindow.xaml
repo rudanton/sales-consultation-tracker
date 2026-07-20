@@ -1034,6 +1034,7 @@
                                      ItemTemplate="{StaticResource FileTemplate}"
                                      BorderThickness="0"
                                      Background="Transparent"
+                                     PreviewMouseWheel="ScrollableListBox_PreviewMouseWheel"
                                      MouseDoubleClick="FileListBox_MouseDoubleClick"
                                      ItemContainerStyle="{StaticResource FileItem}" />
                             <TextBlock x:Name="ReferenceEstimateTitleTextBlock"
@@ -1046,6 +1047,7 @@
                                      ItemTemplate="{StaticResource FileTemplate}"
                                      BorderThickness="0"
                                      Background="Transparent"
+                                     PreviewMouseWheel="ScrollableListBox_PreviewMouseWheel"
                                      MouseDoubleClick="ReferenceEstimateListBox_MouseDoubleClick"
                                      ItemContainerStyle="{StaticResource FileItem}" />
                         </Grid>

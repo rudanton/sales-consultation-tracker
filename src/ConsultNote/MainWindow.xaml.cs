@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -1269,6 +1270,32 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ScrollableListBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ListBox listBox)
+        {
+            return;
+        }
+
+        var scrollViewer = FindVisualChild<ScrollViewer>(listBox);
+        if (scrollViewer is null || scrollViewer.ScrollableHeight <= 0)
+        {
+            return;
+        }
+
+        var isScrollingDown = e.Delta < 0;
+        var canScrollDown = scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight;
+        var canScrollUp = scrollViewer.VerticalOffset > 0;
+
+        if ((isScrollingDown && !canScrollDown) || (!isScrollingDown && !canScrollUp))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
+    }
+
     private void OpenFile(FileItemViewModel selectedFile)
     {
         if (!File.Exists(selectedFile.FilePath))
@@ -2521,6 +2548,27 @@ public partial class MainWindow : Window
         {
             // Keep the user-facing message path alive even if logging fails.
         }
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent)
+        where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T typedChild)
+            {
+                return typedChild;
+            }
+
+            var nestedChild = FindVisualChild<T>(child);
+            if (nestedChild is not null)
+            {
+                return nestedChild;
+            }
+        }
+
+        return null;
     }
 
     private sealed record ConsultationDraft(
