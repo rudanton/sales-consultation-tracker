@@ -511,21 +511,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (selectedCustomer.ConsultationLogs.Count == 0)
+        if (!TryGetMileageValue(out _))
         {
-            MessageBox.Show("내보낼 상담 기록이 없습니다.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var exportPath = string.Empty;
         try
         {
+            var exportText = BuildFullConsultationExportText(selectedCustomer);
+            Clipboard.SetText(exportText);
+
             var exportDirectory = GetCustomerFilesDirectory(selectedCustomer.Id);
             Directory.CreateDirectory(exportDirectory);
 
             var customerName = SanitizeFileName(selectedCustomer.Name);
-            exportPath = Path.Combine(exportDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}_{customerName}_상담기록.txt");
-            File.WriteAllText(exportPath, BuildConsultationHistoryExportText(selectedCustomer), Encoding.UTF8);
+            var phoneSuffix = GetPhoneNumberSuffix(selectedCustomer.PhoneNumber);
+            exportPath = Path.Combine(exportDirectory, $"{customerName}_{phoneSuffix}_상담기록.txt");
+            File.WriteAllText(exportPath, exportText, Encoding.UTF8);
         }
         catch (Exception ex)
         {
@@ -534,7 +537,7 @@ public partial class MainWindow : Window
         }
 
         MessageBox.Show(
-            $"고객 1명의 전체 상담 기록을 txt 파일 1개로 저장했습니다.\n과거 기록부터 최신 기록 순서로 정리됩니다.\n\n{exportPath}",
+            $"상담 양식과 전체 상담 기록을 클립보드에 복사하고 txt 파일로 저장했습니다.\n\n{exportPath}",
             "Consult Note",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -1597,11 +1600,41 @@ public partial class MainWindow : Window
         {
             builder.AppendLine();
             builder.AppendLine("----------------------------------------");
-            builder.AppendLine($"[{log.CreatedAtText}]");
+            builder.AppendLine($"[{log.CreatedAtText}] {log.StatusText}");
             builder.AppendLine(log.Content);
         }
 
         return builder.ToString();
+    }
+
+    private string BuildFullConsultationExportText(CustomerItemViewModel customer)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(BuildConsultationExportText());
+        builder.AppendLine();
+        builder.AppendLine("===== 전체 상담 기록 =====");
+
+        if (customer.ConsultationLogs.Count == 0)
+        {
+            builder.AppendLine("상담 기록 없음");
+        }
+        else
+        {
+            builder.Append(BuildConsultationHistoryExportText(customer));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string GetPhoneNumberSuffix(string phoneNumber)
+    {
+        var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
+        if (digits.Length == 0)
+        {
+            return "번호없음";
+        }
+
+        return digits.Length <= 4 ? digits : digits[^4..];
     }
 
     private void UpdateMileageCustomInput()
