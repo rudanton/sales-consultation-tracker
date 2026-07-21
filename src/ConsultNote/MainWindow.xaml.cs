@@ -2299,7 +2299,7 @@ public partial class MainWindow : Window
 
     private static string FormatToggle(bool? isChecked)
     {
-        return isChecked == true ? "1년 이상" : "1년 미만 또는 확인 필요";
+        return isChecked == true ? "1년 이상" : string.Empty;
     }
 
     private bool TryGetMileageValue(out string mileage)
