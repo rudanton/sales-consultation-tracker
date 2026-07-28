@@ -593,7 +593,7 @@ public sealed class MainWindowViewModel : ObservableObject
             CustomerType = customerType,
             VehicleSummary = vehicleSummary,
             Status = customer.Status,
-            StatusText = FormatStatus(customer.Status, customer.StatusChangedAt, customer.LastContactAttemptAt),
+            StatusText = FormatStatus(customer.Status, customer.StatusChangedAt),
             RecentText = FormatRecent(customer.LastConsultedAt ?? latestLog?.CreatedAt),
             MemoPreview = EmptyToDash(customer.Memo),
             IsFavorite = customer.IsFavorite,
@@ -645,7 +645,7 @@ public sealed class MainWindowViewModel : ObservableObject
         return viewModel;
     }
 
-    private static string FormatStatus(CustomerStatus status, DateTime? statusChangedAt, DateTime? lastContactAttemptAt)
+    private static string FormatStatus(CustomerStatus status, DateTime? statusChangedAt)
     {
         var statusText = FormatStatusName(status);
 
@@ -654,7 +654,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return statusText;
         }
 
-        var baseline = lastContactAttemptAt ?? statusChangedAt;
+        var baseline = statusChangedAt;
         if (baseline is null)
         {
             return statusText;

@@ -621,8 +621,12 @@ public partial class MainWindow : Window
             customer.LastContactAttemptAt = now;
             if (customer.Status != nextStatus)
             {
+                var shouldKeepNoAnswerStartedAt = IsNoAnswerStatus(customer.Status) && IsNoAnswerStatus(nextStatus);
                 customer.Status = nextStatus;
-                customer.StatusChangedAt = now;
+                if (!shouldKeepNoAnswerStartedAt)
+                {
+                    customer.StatusChangedAt = now;
+                }
             }
 
             customer.UpdatedAt = now;
@@ -2101,6 +2105,11 @@ public partial class MainWindow : Window
     private static bool IsEstimateFileType(string fileType, string? customFileType)
     {
         return string.Equals(GetDisplayFileType(fileType, customFileType), "견적", StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private static bool IsNoAnswerStatus(CustomerStatus status)
+    {
+        return status is CustomerStatus.NoAnswer or CustomerStatus.LongNoAnswer;
     }
 
     private static string BuildVehicleResourceDisplayName(string? vehicleName, string fileType, string? customFileType, int fileOrder)
