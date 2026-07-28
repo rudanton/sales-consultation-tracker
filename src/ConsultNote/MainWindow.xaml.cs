@@ -1126,7 +1126,7 @@ public partial class MainWindow : Window
                 DisplayName = displayName,
                 FilePath = destinationPath,
                 FileType = dialog.FileType,
-                CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null,
+                CustomFileType = IsCustomFileType(dialog.FileType) ? dialog.CustomFileType : null,
                 FileOrder = fileOrder,
                 Memo = dialog.Memo,
                 CreatedAt = now,
@@ -1373,7 +1373,7 @@ public partial class MainWindow : Window
             : GetNextFileOrderFromDatabase(dbContext, selectedCustomer.Id, dialog.FileType, dialog.CustomFileType, customerFile.Id);
 
         customerFile.FileType = dialog.FileType;
-        customerFile.CustomFileType = dialog.FileType == "기타" ? dialog.CustomFileType : null;
+        customerFile.CustomFileType = IsCustomFileType(dialog.FileType) ? dialog.CustomFileType : null;
         customerFile.FileOrder = fileOrder;
         customerFile.Memo = dialog.Memo;
         customerFile.DisplayName = BuildCustomerFileDisplayName(
@@ -2066,7 +2066,7 @@ public partial class MainWindow : Window
 
     private static string BuildCustomerFileDisplayName(string customerName, string fileType, string? customFileType, int fileOrder)
     {
-        var displayFileType = fileType == "기타" && !string.IsNullOrWhiteSpace(customFileType)
+        var displayFileType = IsCustomFileType(fileType) && !string.IsNullOrWhiteSpace(customFileType)
             ? customFileType.Trim()
             : fileType.Trim();
 
@@ -2088,9 +2088,14 @@ public partial class MainWindow : Window
 
     private static string GetDisplayFileType(string fileType, string? customFileType)
     {
-        return fileType == "기타" && !string.IsNullOrWhiteSpace(customFileType)
+        return IsCustomFileType(fileType) && !string.IsNullOrWhiteSpace(customFileType)
             ? customFileType.Trim()
             : fileType.Trim();
+    }
+
+    private static bool IsCustomFileType(string fileType)
+    {
+        return string.Equals(fileType.Trim(), "기타", StringComparison.CurrentCultureIgnoreCase);
     }
 
     private static bool IsEstimateFileType(string fileType, string? customFileType)

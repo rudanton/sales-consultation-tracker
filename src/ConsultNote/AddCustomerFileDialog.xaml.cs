@@ -83,6 +83,7 @@ public partial class AddCustomerFileDialog : Window
     {
         InitializeComponent();
         PreviewKeyDown += AddCustomerFileDialog_PreviewKeyDown;
+        FileTypeComboBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(FileTypeTextBox_TextChanged));
         VehicleBrandComboBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(VehicleBrandTextBox_TextChanged));
         VehicleNameComboBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(VehicleNameTextBox_TextChanged));
         _isEditMode = isEditMode;
@@ -157,7 +158,17 @@ public partial class AddCustomerFileDialog : Window
 
     private void FileTypeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        CustomFileTypePanel.Visibility = FileType == "기타" ? Visibility.Visible : Visibility.Collapsed;
+        RefreshFileTypeDependentFields();
+    }
+
+    private void FileTypeTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        RefreshFileTypeDependentFields();
+    }
+
+    private void RefreshFileTypeDependentFields()
+    {
+        CustomFileTypePanel.Visibility = IsCustomFileType(FileType) ? Visibility.Visible : Visibility.Collapsed;
         UpdateFileOrder();
         UpdateFieldVisibility();
     }
@@ -177,7 +188,7 @@ public partial class AddCustomerFileDialog : Window
             return;
         }
 
-        if (FileType == "기타" && string.IsNullOrWhiteSpace(CustomFileType))
+        if (IsCustomFileType(FileType) && string.IsNullOrWhiteSpace(CustomFileType))
         {
             MessageBox.Show("기타 파일 유형명을 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -371,7 +382,7 @@ public partial class AddCustomerFileDialog : Window
     {
         var isEstimate = IsEstimateFileType(FileType, CustomFileType);
         EstimateMetadataPanel.Visibility = isEstimate ? Visibility.Visible : Visibility.Collapsed;
-        MemoPanel.Visibility = isEstimate || FileType == "기타" ? Visibility.Visible : Visibility.Collapsed;
+        MemoPanel.Visibility = isEstimate || IsCustomFileType(FileType) ? Visibility.Visible : Visibility.Collapsed;
         if (MemoPanel.Visibility != Visibility.Visible)
         {
             MemoTextBox.Text = string.Empty;
@@ -385,9 +396,14 @@ public partial class AddCustomerFileDialog : Window
 
     private static string GetDisplayFileType(string fileType, string? customFileType)
     {
-        return fileType == "기타" && !string.IsNullOrWhiteSpace(customFileType)
+        return IsCustomFileType(fileType) && !string.IsNullOrWhiteSpace(customFileType)
             ? customFileType.Trim()
             : fileType.Trim();
+    }
+
+    private static bool IsCustomFileType(string fileType)
+    {
+        return string.Equals(fileType.Trim(), "기타", StringComparison.CurrentCultureIgnoreCase);
     }
 
     private static string? TrimToNull(string? value)
