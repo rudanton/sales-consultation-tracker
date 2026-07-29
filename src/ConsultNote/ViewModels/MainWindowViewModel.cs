@@ -353,9 +353,8 @@ public sealed class MainWindowViewModel : ObservableObject
         CustomerNameInput = customer?.Name == "-" ? string.Empty : customer?.Name;
         CustomerPhoneInput = customer?.PhoneNumber == "-" ? string.Empty : PhoneNumberFormatter.Format(customer?.PhoneNumber);
         CustomerMemoInput = customer?.MemoPreview == "-" ? string.Empty : customer?.MemoPreview;
-        SelectedCustomerStatus = customer is null
-            ? CustomerStatusOptions.FirstOrDefault()
-            : CustomerStatusOptions.FirstOrDefault(option => option.Status == customer.Status);
+        SelectedCustomerStatus = CustomerStatusOptions.FirstOrDefault(option => option.Status == CustomerStatus.Consulting)
+            ?? CustomerStatusOptions.FirstOrDefault();
     }
 
     private bool MatchesSearch(CustomerItemViewModel customer)
