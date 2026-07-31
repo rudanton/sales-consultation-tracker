@@ -8,6 +8,8 @@ public sealed class ConsultationLogItemViewModel
 
     public CustomerStatus Status { get; init; }
 
+    public DateTime CreatedAt { get; init; }
+
     public required string CreatedAtText { get; init; }
 
     public required string StatusText { get; init; }

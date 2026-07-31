@@ -252,11 +252,13 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             var activeCustomers = _allCustomers.Where(customer => customer.Status != CustomerStatus.Discarded).ToList();
             var recentConsultations = activeCustomers.Count(customer => customer.LastConsultedAt is not null && customer.LastConsultedAt.Value.Date >= DateTime.Today.AddDays(-7));
-            var monthlyEstimateCount = activeCustomers
+            var weekStart = GetCurrentWeekStart();
+            var weeklyEstimateCount = activeCustomers
                 .SelectMany(customer => customer.Files)
-                .Count(file => file.FileType == "견적" && file.CreatedAt.Year == DateTime.Today.Year && file.CreatedAt.Month == DateTime.Today.Month);
+                .Count(file => file.FileType == "견적" && file.CreatedAt.Date >= weekStart);
+            var weeklyFollowUpCount = activeCustomers.Sum(CountWeeklyFollowUpLogs);
 
-            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 이번 달 견적 {monthlyEstimateCount}건";
+            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 금주 견적 {weeklyEstimateCount}건 · 금주 재접촉 {weeklyFollowUpCount}건";
         }
     }
 
@@ -612,6 +614,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 Id = log.Id,
                 Status = log.Status,
+                CreatedAt = log.CreatedAt,
                 CreatedAtText = log.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
                 StatusText = FormatStatusName(log.Status),
                 Content = log.Content,
@@ -676,6 +679,22 @@ public sealed class MainWindowViewModel : ObservableObject
             CustomerStatus.Discarded => "폐기",
             _ => "상담중",
         };
+    }
+
+    private static int CountWeeklyFollowUpLogs(CustomerItemViewModel customer)
+    {
+        var weekStart = GetCurrentWeekStart();
+        return customer.ConsultationLogs
+            .OrderBy(log => log.CreatedAt)
+            .Select((log, index) => new { Log = log, Index = index })
+            .Count(item => item.Index > 0 && item.Log.CreatedAt.Date >= weekStart);
+    }
+
+    private static DateTime GetCurrentWeekStart()
+    {
+        var today = DateTime.Today;
+        var daysSinceMonday = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        return today.AddDays(-daysSinceMonday);
     }
 
     private static int GetStatusOrder(CustomerStatus status)
