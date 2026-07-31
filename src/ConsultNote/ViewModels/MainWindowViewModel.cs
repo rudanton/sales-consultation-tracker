@@ -257,8 +257,9 @@ public sealed class MainWindowViewModel : ObservableObject
                 .SelectMany(customer => customer.Files)
                 .Count(file => file.FileType == "견적" && file.CreatedAt.Date >= weekStart);
             var weeklyFollowUpCount = activeCustomers.Sum(CountWeeklyFollowUpLogs);
+            var weeklyScreeningCustomerCount = activeCustomers.Count(customer => HasWeeklyScreeningLog(customer, weekStart));
 
-            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 금주 견적 {weeklyEstimateCount}건 · 금주 재접촉 {weeklyFollowUpCount}건";
+            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 금주 견적 {weeklyEstimateCount}건 · 금주 재접촉 {weeklyFollowUpCount}건 · 금주 심사 {weeklyScreeningCustomerCount}명";
         }
     }
 
@@ -688,6 +689,13 @@ public sealed class MainWindowViewModel : ObservableObject
             .OrderBy(log => log.CreatedAt)
             .Select((log, index) => new { Log = log, Index = index })
             .Count(item => item.Index > 0 && item.Log.CreatedAt.Date >= weekStart);
+    }
+
+    private static bool HasWeeklyScreeningLog(CustomerItemViewModel customer, DateTime weekStart)
+    {
+        return customer.ConsultationLogs.Any(log =>
+            log.Status == CustomerStatus.Screening &&
+            log.CreatedAt.Date >= weekStart);
     }
 
     private static DateTime GetCurrentWeekStart()
