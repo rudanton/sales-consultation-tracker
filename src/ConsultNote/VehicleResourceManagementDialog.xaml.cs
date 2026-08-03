@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using ConsultNote.Data;
@@ -17,13 +18,16 @@ namespace ConsultNote;
 
 public partial class VehicleResourceManagementDialog : Window, INotifyPropertyChanged
 {
+    private const string AllFilterOption = "전체";
     private VehicleResourceFileItemViewModel? _selectedResource;
+    private bool _isUpdatingFilters;
 
     public VehicleResourceManagementDialog()
     {
         InitializeComponent();
         DataContext = this;
         PreviewKeyDown += VehicleResourceManagementDialog_PreviewKeyDown;
+        LoadFilterOptions();
         LoadResources();
     }
 
@@ -51,8 +55,19 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             .AsNoTracking()
             .Where(vehicle => vehicle.IsActive)
             .ToList();
-        var resources = dbContext.VehicleResourceFiles
+        var selectedBrand = GetSelectedFilterValue(BrandFilterComboBox);
+        var selectedVehicleName = GetSelectedFilterValue(VehicleNameFilterComboBox);
+        var selectedRentalCompany = GetSelectedFilterValue(RentalCompanyFilterComboBox);
+        var query = dbContext.VehicleResourceFiles
             .AsNoTracking()
+            .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
+            .Where(file => selectedVehicleName == null || file.VehicleName == selectedVehicleName)
+            .Where(file =>
+                selectedRentalCompany == null ||
+                file.RentalCompany == selectedRentalCompany ||
+                file.CapitalCompany == selectedRentalCompany);
+
+        var resources = query
             .AsEnumerable()
             .OrderBy(file => VehicleSort.GetBrandOrder(file.VehicleBrand))
             .ThenBy(file => VehicleSort.GetBrandSortName(file.VehicleBrand))
@@ -75,6 +90,66 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         SelectedResource = selectedResourceId is null
             ? ResourceFiles.FirstOrDefault()
             : ResourceFiles.FirstOrDefault(resource => resource.Id == selectedResourceId) ?? ResourceFiles.FirstOrDefault();
+    }
+
+    private void LoadFilterOptions()
+    {
+        var selectedBrand = GetSelectedFilterValue(BrandFilterComboBox);
+        var selectedVehicleName = GetSelectedFilterValue(VehicleNameFilterComboBox);
+        var selectedRentalCompany = GetSelectedFilterValue(RentalCompanyFilterComboBox);
+
+        using var dbContext = new AppDbContext();
+        var files = dbContext.VehicleResourceFiles.AsNoTracking().ToList();
+
+        _isUpdatingFilters = true;
+        SetFilterItems(
+            BrandFilterComboBox,
+            files.Select(file => file.VehicleBrand),
+            selectedBrand,
+            values => values
+                .OrderBy(VehicleSort.GetBrandOrder)
+                .ThenBy(VehicleSort.GetBrandSortName));
+        SetFilterItems(
+            VehicleNameFilterComboBox,
+            files
+                .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
+                .Select(file => file.VehicleName),
+            selectedVehicleName,
+            values => values.OrderBy(value => value));
+        SetFilterItems(
+            RentalCompanyFilterComboBox,
+            files
+                .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
+                .Where(file => selectedVehicleName == null || file.VehicleName == selectedVehicleName)
+                .Select(file => string.IsNullOrWhiteSpace(file.RentalCompany) ? file.CapitalCompany : file.RentalCompany),
+            selectedRentalCompany,
+            values => values.OrderBy(value => value));
+        _isUpdatingFilters = false;
+    }
+
+    private static void SetFilterItems(
+        ComboBox comboBox,
+        IEnumerable<string?> sourceValues,
+        string? selectedValue,
+        Func<IEnumerable<string>, IOrderedEnumerable<string>> orderBy)
+    {
+        var values = orderBy(sourceValues
+                .Select(TrimToNull)
+                .Where(value => value is not null)
+                .Select(value => value!)
+                .Distinct(StringComparer.CurrentCulture))
+            .ToList();
+
+        comboBox.ItemsSource = new[] { AllFilterOption }.Concat(values).ToList();
+        comboBox.SelectedItem = selectedValue is not null && values.Contains(selectedValue)
+            ? selectedValue
+            : AllFilterOption;
+    }
+
+    private static string? GetSelectedFilterValue(ComboBox comboBox)
+    {
+        var value = TrimToNull(comboBox.SelectedItem?.ToString());
+        return value is null || value == AllFilterOption ? null : value;
     }
 
     private void AddButton_Click(object sender, RoutedEventArgs e)
@@ -117,6 +192,29 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         {
             MessageBox.Show($"차량별 자료 폴더를 열 수 없습니다.\n\n{ex.Message}", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void FilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingFilters)
+        {
+            return;
+        }
+
+        LoadFilterOptions();
+        LoadResources();
+    }
+
+    private void ResetFilterButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isUpdatingFilters = true;
+        BrandFilterComboBox.SelectedItem = AllFilterOption;
+        VehicleNameFilterComboBox.SelectedItem = AllFilterOption;
+        RentalCompanyFilterComboBox.SelectedItem = AllFilterOption;
+        _isUpdatingFilters = false;
+
+        LoadFilterOptions();
+        LoadResources();
     }
 
     private void VehicleResourceListBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -235,6 +333,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
 
             dbContext.VehicleResourceFiles.Add(resource);
             dbContext.SaveChanges();
+            LoadFilterOptions();
             LoadResources(resource.Id);
             return true;
         }
@@ -338,6 +437,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         try
         {
             dbContext.SaveChanges();
+            LoadFilterOptions();
             LoadResources(resource.Id);
         }
         catch (Exception ex)
@@ -377,6 +477,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             dbContext.VehicleResourceFiles.Remove(resource);
             dbContext.SaveChanges();
             TryDeleteStoredFile(filePath);
+            LoadFilterOptions();
             LoadResources();
         }
         catch (Exception ex)
@@ -547,6 +648,12 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         }
 
         return string.IsNullOrWhiteSpace(fileName) ? "vehicle-resource" : fileName;
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

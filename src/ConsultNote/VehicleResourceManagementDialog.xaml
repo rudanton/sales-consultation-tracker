@@ -79,6 +79,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -118,8 +119,61 @@
                         Click="OpenFolderButton_Click" />
             </Grid>
 
+            <Border Grid.Row="1"
+                    Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10"
+                    Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="제조사" Style="{StaticResource MutedText}" />
+                        <ComboBox x:Name="BrandFilterComboBox"
+                                  Height="30"
+                                  Margin="0,4,0,0"
+                                  SelectionChanged="FilterComboBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="차량명" Style="{StaticResource MutedText}" />
+                        <ComboBox x:Name="VehicleNameFilterComboBox"
+                                  Height="30"
+                                  Margin="0,4,0,0"
+                                  SelectionChanged="FilterComboBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="캐피탈/렌트사" Style="{StaticResource MutedText}" />
+                        <ComboBox x:Name="RentalCompanyFilterComboBox"
+                                  Height="30"
+                                  Margin="0,4,0,0"
+                                  SelectionChanged="FilterComboBox_SelectionChanged" />
+                    </StackPanel>
+
+                    <Button Grid.Column="6"
+                            Content="초기화"
+                            Style="{StaticResource DialogButton}"
+                            Height="30"
+                            MinHeight="30"
+                            Padding="10,0"
+                            VerticalAlignment="Bottom"
+                            Click="ResetFilterButton_Click" />
+                </Grid>
+            </Border>
+
             <ListBox x:Name="VehicleResourceListBox"
-                     Grid.Row="1"
+                     Grid.Row="2"
                      ItemsSource="{Binding ResourceFiles}"
                      SelectedItem="{Binding SelectedResource}"
                      ItemTemplate="{StaticResource VehicleResourceTemplate}"
@@ -130,7 +184,7 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
 
-            <StackPanel Grid.Row="2"
+            <StackPanel Grid.Row="3"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,12,0,0">
