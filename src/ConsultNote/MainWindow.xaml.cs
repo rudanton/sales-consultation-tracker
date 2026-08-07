@@ -1285,22 +1285,38 @@ public partial class MainWindow : Window
         }
 
         var scrollViewer = FindVisualChild<ScrollViewer>(listBox);
-        if (scrollViewer is null || scrollViewer.ScrollableHeight <= 0)
+        if (scrollViewer is not null && scrollViewer.ScrollableHeight > 0)
         {
+            var isScrollingDown = e.Delta < 0;
+            var canScrollDown = scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight;
+            var canScrollUp = scrollViewer.VerticalOffset > 0;
+
+            if ((isScrollingDown && canScrollDown) || (!isScrollingDown && canScrollUp))
+            {
+                e.Handled = true;
+                scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
+                return;
+            }
+        }
+
+        if (SidebarScrollViewer.ScrollableHeight <= 0)
+        {
+            e.Handled = true;
             return;
         }
 
-        var isScrollingDown = e.Delta < 0;
-        var canScrollDown = scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight;
-        var canScrollUp = scrollViewer.VerticalOffset > 0;
+        var sidebarIsScrollingDown = e.Delta < 0;
+        var sidebarCanScrollDown = SidebarScrollViewer.VerticalOffset < SidebarScrollViewer.ScrollableHeight;
+        var sidebarCanScrollUp = SidebarScrollViewer.VerticalOffset > 0;
 
-        if ((isScrollingDown && !canScrollDown) || (!isScrollingDown && !canScrollUp))
+        if ((sidebarIsScrollingDown && !sidebarCanScrollDown) || (!sidebarIsScrollingDown && !sidebarCanScrollUp))
         {
+            e.Handled = true;
             return;
         }
 
         e.Handled = true;
-        scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
+        SidebarScrollViewer.ScrollToVerticalOffset(SidebarScrollViewer.VerticalOffset - e.Delta);
     }
 
     private void OpenFile(FileItemViewModel selectedFile)
