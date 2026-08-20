@@ -52,7 +52,7 @@ public sealed class CustomerItemViewModel
 
     public string HeaderDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
 
-    public bool HasDiscardReason => !string.IsNullOrWhiteSpace(DiscardReason);
+    public bool HasDiscardReason => Status == CustomerStatus.Discarded && !string.IsNullOrWhiteSpace(DiscardReason);
 
     public string DiscardReasonText => HasDiscardReason ? $"폐기 사유: {DiscardReason}" : string.Empty;
 }
