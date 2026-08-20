@@ -191,6 +191,22 @@
                                Style="{StaticResource MutedText}"
                                Text="{Binding VehicleMemoDetail}"
                                TextWrapping="Wrap" />
+                    <TextBlock Margin="0,4,0,0"
+                               Foreground="{StaticResource ErrorBrush}"
+                               Text="{Binding DiscardReasonText}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDiscardReason}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -447,6 +463,21 @@
                             <TextBlock Text="{Binding SelectedCustomer.HeaderDetail}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding SelectedCustomer.DiscardReasonText}"
+                                       Margin="0,4,0,0"
+                                       TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedCustomer.HasDiscardReason}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"

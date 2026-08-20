@@ -51,4 +51,8 @@ public sealed class CustomerItemViewModel
         : $"{VehicleSummary} | {MemoPreview}";
 
     public string HeaderDetail => $"{PhoneNumber} · {CustomerType} · {VehicleSummary}";
+
+    public bool HasDiscardReason => !string.IsNullOrWhiteSpace(DiscardReason);
+
+    public string DiscardReasonText => HasDiscardReason ? $"폐기 사유: {DiscardReason}" : string.Empty;
 }
