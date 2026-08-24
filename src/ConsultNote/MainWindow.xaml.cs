@@ -2404,14 +2404,26 @@ public partial class MainWindow : Window
 
     private string GetInitialCostText()
     {
-        var parts = new[]
-        {
-            NoInitialCostCheckBox.IsChecked == true ? "없음" : null,
-            TrimToNull(PrepaymentTextBox.Text),
-            TrimToNull(DepositTextBox.Text),
-        };
+        var prepayment = TrimToNull(PrepaymentTextBox.Text);
+        var deposit = TrimToNull(DepositTextBox.Text);
+        var parts = new List<string>();
 
-        return string.Join(" / ", parts.Where(value => !string.IsNullOrWhiteSpace(value)));
+        if (NoInitialCostCheckBox.IsChecked == true)
+        {
+            parts.Add("없음");
+        }
+
+        if (!string.IsNullOrWhiteSpace(prepayment))
+        {
+            parts.Add($"선납금: {prepayment}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(deposit))
+        {
+            parts.Add($"보증금: {deposit}");
+        }
+
+        return string.Join(" / ", parts);
     }
 
     private string GetMileageSelectedText()
@@ -2569,9 +2581,45 @@ public partial class MainWindow : Window
 
         var parts = initialCost.Split(" / ", StringSplitOptions.TrimEntries);
         NoInitialCostCheckBox.IsChecked = parts.Any(part => part == "없음");
-        var costParts = parts.Where(part => part != "없음").ToList();
-        PrepaymentTextBox.Text = costParts.ElementAtOrDefault(0) ?? string.Empty;
-        DepositTextBox.Text = costParts.ElementAtOrDefault(1) ?? string.Empty;
+        var legacyCostParts = new List<string>();
+        var prepayment = string.Empty;
+        var deposit = string.Empty;
+
+        foreach (var part in parts.Where(part => part != "없음"))
+        {
+            if (TryReadInitialCostPart(part, "선납금", out var prepaymentValue))
+            {
+                prepayment = prepaymentValue;
+                continue;
+            }
+
+            if (TryReadInitialCostPart(part, "보증금", out var depositValue))
+            {
+                deposit = depositValue;
+                continue;
+            }
+
+            legacyCostParts.Add(part);
+        }
+
+        PrepaymentTextBox.Text = !string.IsNullOrWhiteSpace(prepayment)
+            ? prepayment
+            : legacyCostParts.ElementAtOrDefault(0) ?? string.Empty;
+        DepositTextBox.Text = !string.IsNullOrWhiteSpace(deposit)
+            ? deposit
+            : legacyCostParts.ElementAtOrDefault(1) ?? string.Empty;
+    }
+
+    private static bool TryReadInitialCostPart(string part, string label, out string value)
+    {
+        value = string.Empty;
+        if (!part.StartsWith(label, StringComparison.CurrentCulture))
+        {
+            return false;
+        }
+
+        value = part[label.Length..].TrimStart(':', ' ', '\t');
+        return true;
     }
 
     private void SetOwnerType(string? ownerType)
