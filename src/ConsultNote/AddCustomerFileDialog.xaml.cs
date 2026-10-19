@@ -79,7 +79,8 @@ public partial class AddCustomerFileDialog : Window
         string? capitalCompany = null,
         string? rentalCompany = null,
         string? sourceFilePath = null,
-        bool isEditMode = false)
+        bool isEditMode = false,
+        string? quoteType = null)
     {
         InitializeComponent();
         PreviewKeyDown += AddCustomerFileDialog_PreviewKeyDown;
@@ -95,7 +96,7 @@ public partial class AddCustomerFileDialog : Window
         FilePathTextBox.Text = sourceFilePath ?? string.Empty;
         CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
         MemoTextBox.Text = memo ?? string.Empty;
-        RentalCompanyTextBox.Text = rentalCompany ?? capitalCompany ?? string.Empty;
+        QuoteTerms.Load(quoteType, rentalCompany ?? capitalCompany);
         LoadVehicleOptions(vehicleBrand, vehicleName, fuelType);
         UpdateFileOrder();
         if (fileOrder is not null)
@@ -117,7 +118,7 @@ public partial class AddCustomerFileDialog : Window
 
     public string OriginalFileName => Path.GetFileName(SourceFilePath);
 
-    public string FileType => TrimToNull(FileTypeComboBox.Text) ?? _fileTypes[0];
+    public string FileType => TrimToNull(FileTypeComboBox.SelectedItem as string ?? FileTypeComboBox.Text) ?? _fileTypes[0];
 
     public string? CustomFileType => TrimToNull(CustomFileTypeTextBox.Text);
 
@@ -133,7 +134,9 @@ public partial class AddCustomerFileDialog : Window
 
     public string? CapitalCompany => null;
 
-    public string? RentalCompany => TrimToNull(RentalCompanyTextBox.Text);
+    public string? RentalCompany => QuoteTerms.RentalCompany;
+
+    public string? QuoteType => QuoteTerms.QuoteType;
 
     public static bool IsSupportedFile(string filePath)
     {
@@ -203,6 +206,11 @@ public partial class AddCustomerFileDialog : Window
         if (!int.TryParse(FileOrderTextBox.Text.Trim(), out var fileOrder) || fileOrder < 1)
         {
             MessageBox.Show("파일 순서는 1 이상의 숫자로 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (IsEstimateFileType(FileType, CustomFileType) && !QuoteTerms.ValidateSelection())
+        {
             return;
         }
 

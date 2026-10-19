@@ -9,6 +9,14 @@ namespace ConsultNote.Data;
 
 public sealed class AppDbContext : DbContext
 {
+    public AppDbContext()
+    {
+    }
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
     public DbSet<Customer> Customers => Set<Customer>();
 
     public DbSet<ConsultationLog> ConsultationLogs => Set<ConsultationLog>();
@@ -25,6 +33,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
+    public DbSet<RentalCompany> RentalCompanies => Set<RentalCompany>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -35,6 +45,15 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<RentalCompany>(entity =>
+        {
+            entity.Property(company => company.Name)
+                .HasMaxLength(120)
+                .UseCollation("NOCASE")
+                .IsRequired();
+            entity.HasIndex(company => company.Name).IsUnique();
+        });
+
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.Property(customer => customer.Status)
@@ -183,6 +202,9 @@ public sealed class AppDbContext : DbContext
 
             entity.Property(file => file.RentalCompany)
                 .HasMaxLength(120);
+
+            entity.Property(file => file.QuoteType)
+                .HasMaxLength(16);
 
             entity.Property(file => file.CreatedAt).IsRequired();
 

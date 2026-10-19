@@ -37,6 +37,7 @@ public static class AppStartup
 
         EnsureVehicleSchema(dbContext);
         EnsureVehicleResourceSchema(dbContext);
+        EnsureRentalCompanySchema(dbContext);
         EnsureCustomerVehicleResourceLinkSchema(dbContext);
         EnsureVehicleSeedData(dbContext);
     }
@@ -122,8 +123,22 @@ public static class AppStartup
         EnsureColumn(dbContext, "VehicleResourceFiles", "FuelType", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "CapitalCompany", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "RentalCompany", "TEXT NULL");
+        EnsureColumn(dbContext, "VehicleResourceFiles", "QuoteType", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "Memo", "TEXT NULL");
         EnsureColumn(dbContext, "VehicleResourceFiles", "CreatedAt", "TEXT NOT NULL DEFAULT '2026-07-07 00:00:00'");
+    }
+
+    private static void EnsureRentalCompanySchema(AppDbContext dbContext)
+    {
+        dbContext.Database.ExecuteSqlRaw(
+            """
+            CREATE TABLE IF NOT EXISTS "RentalCompanies" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_RentalCompanies" PRIMARY KEY AUTOINCREMENT,
+                "Name" TEXT COLLATE NOCASE NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_RentalCompanies_Name" ON "RentalCompanies" ("Name");
+            """);
+        RentalCompanyCatalog.ImportExisting(dbContext);
     }
 
     private static void EnsureColumn(AppDbContext dbContext, string tableName, string columnName, string columnDefinition)

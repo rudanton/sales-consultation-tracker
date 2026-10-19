@@ -20,7 +20,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
 {
     private const string AllFilterOption = "전체";
     private VehicleResourceFileItemViewModel? _selectedResource;
-    private bool _isUpdatingFilters;
+    private bool _isUpdatingFilters = true;
 
     public VehicleResourceManagementDialog()
     {
@@ -55,17 +55,13 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             .AsNoTracking()
             .Where(vehicle => vehicle.IsActive)
             .ToList();
-        var selectedBrand = GetSelectedFilterValue(BrandFilterComboBox);
-        var selectedVehicleName = GetSelectedFilterValue(VehicleNameFilterComboBox);
-        var selectedRentalCompany = GetSelectedFilterValue(RentalCompanyFilterComboBox);
-        var query = dbContext.VehicleResourceFiles
-            .AsNoTracking()
-            .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
-            .Where(file => selectedVehicleName == null || file.VehicleName == selectedVehicleName)
-            .Where(file =>
-                selectedRentalCompany == null ||
-                file.RentalCompany == selectedRentalCompany ||
-                file.CapitalCompany == selectedRentalCompany);
+        var filter = new VehicleResourceFilter(
+            GetSelectedFilterValue(BrandFilterComboBox),
+            GetSelectedFilterValue(VehicleNameFilterComboBox),
+            GetSelectedFilterValue(RentalCompanyFilterComboBox),
+            GetSelectedFilterValue(FuelTypeFilterComboBox),
+            GetSelectedFilterValue(QuoteTypeFilterComboBox));
+        var query = filter.Apply(dbContext.VehicleResourceFiles.AsNoTracking());
 
         var resources = query
             .AsEnumerable()
@@ -97,6 +93,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         var selectedBrand = GetSelectedFilterValue(BrandFilterComboBox);
         var selectedVehicleName = GetSelectedFilterValue(VehicleNameFilterComboBox);
         var selectedRentalCompany = GetSelectedFilterValue(RentalCompanyFilterComboBox);
+        var selectedFuelType = GetSelectedFilterValue(FuelTypeFilterComboBox);
+        var selectedQuoteType = GetSelectedFilterValue(QuoteTypeFilterComboBox);
 
         using var dbContext = new AppDbContext();
         var files = dbContext.VehicleResourceFiles.AsNoTracking().ToList();
@@ -109,6 +107,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             values => values
                 .OrderBy(VehicleSort.GetBrandOrder)
                 .ThenBy(VehicleSort.GetBrandSortName));
+        selectedBrand = GetSelectedFilterValue(BrandFilterComboBox);
         SetFilterItems(
             VehicleNameFilterComboBox,
             files
@@ -116,11 +115,27 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
                 .Select(file => file.VehicleName),
             selectedVehicleName,
             values => values.OrderBy(value => value));
+        selectedVehicleName = GetSelectedFilterValue(VehicleNameFilterComboBox);
+        SetFilterItems(
+            FuelTypeFilterComboBox,
+            files
+                .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
+                .Where(file => selectedVehicleName == null || file.VehicleName == selectedVehicleName)
+                .Select(file => file.FuelType),
+            selectedFuelType,
+            values => values.OrderBy(VehicleSort.GetFuelTypeOrder).ThenBy(value => value));
+        selectedFuelType = GetSelectedFilterValue(FuelTypeFilterComboBox);
+        SetFilterItems(
+            QuoteTypeFilterComboBox,
+            new[] { "렌트", "리스", VehicleResourceFilter.UnspecifiedQuoteType },
+            selectedQuoteType,
+            values => values.OrderBy(value => value == "렌트" ? 0 : value == "리스" ? 1 : 2));
         SetFilterItems(
             RentalCompanyFilterComboBox,
             files
                 .Where(file => selectedBrand == null || file.VehicleBrand == selectedBrand)
                 .Where(file => selectedVehicleName == null || file.VehicleName == selectedVehicleName)
+                .Where(file => selectedFuelType == null || file.FuelType == selectedFuelType)
                 .Select(file => string.IsNullOrWhiteSpace(file.RentalCompany) ? file.CapitalCompany : file.RentalCompany),
             selectedRentalCompany,
             values => values.OrderBy(value => value));
@@ -211,6 +226,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         BrandFilterComboBox.SelectedItem = AllFilterOption;
         VehicleNameFilterComboBox.SelectedItem = AllFilterOption;
         RentalCompanyFilterComboBox.SelectedItem = AllFilterOption;
+        FuelTypeFilterComboBox.SelectedItem = AllFilterOption;
+        QuoteTypeFilterComboBox.SelectedItem = AllFilterOption;
         _isUpdatingFilters = false;
 
         LoadFilterOptions();
@@ -327,6 +344,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
                 FuelType = dialog.FuelType,
                 CapitalCompany = null,
                 RentalCompany = dialog.RentalCompany,
+                QuoteType = dialog.FileType == "견적" ? dialog.QuoteType : null,
                 Memo = dialog.Memo,
                 CreatedAt = now,
             };
@@ -407,7 +425,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
             resource.CapitalCompany,
             resource.RentalCompany,
             resource.Memo,
-            isEditMode: true)
+            isEditMode: true,
+            quoteType: resource.QuoteType)
         {
             Owner = this,
         };
@@ -431,6 +450,7 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
         resource.FuelType = dialog.FuelType;
         resource.CapitalCompany = null;
         resource.RentalCompany = dialog.RentalCompany;
+        resource.QuoteType = dialog.FileType == "견적" ? dialog.QuoteType : null;
         resource.Memo = dialog.Memo;
         resource.DisplayName = BuildDisplayName(dialog.VehicleName, dialog.FileType, dialog.CustomFileType, fileOrder);
 
@@ -511,7 +531,8 @@ public partial class VehicleResourceManagementDialog : Window, INotifyPropertyCh
     {
         var displayFileType = GetDisplayFileType(file.FileType, file.CustomFileType);
         var rentalCompany = string.IsNullOrWhiteSpace(file.RentalCompany) ? file.CapitalCompany : file.RentalCompany;
-        var vehicleSummary = string.Join(" · ", new[] { file.VehicleBrand, file.VehicleName, file.FuelType, rentalCompany }
+        var quoteType = file.FileType == "견적" ? file.QuoteType ?? VehicleResourceFilter.UnspecifiedQuoteType : null;
+        var vehicleSummary = string.Join(" · ", new[] { file.VehicleBrand, file.VehicleName, file.FuelType, quoteType, rentalCompany }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
         return new VehicleResourceFileItemViewModel
         {

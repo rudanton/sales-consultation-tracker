@@ -1,6 +1,7 @@
 <Window x:Class="ConsultNote.AddCustomerFileDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ConsultNote"
         Title="고객 파일 추가"
         Width="520"
         Height="660"
@@ -54,7 +55,8 @@
                            Margin="0,3,0,0" />
             </StackPanel>
 
-            <StackPanel Grid.Row="1">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
                 <TextBlock x:Name="FileLabelTextBlock" Text="파일" Style="{StaticResource MutedText}" />
                 <Grid x:Name="FilePickerPanel" Margin="0,5,0,10">
                     <Grid.ColumnDefinitions>
@@ -110,10 +112,7 @@
                                   StaysOpenOnEdit="True" />
                     </Grid>
 
-                    <TextBlock Text="렌트사" Style="{StaticResource MutedText}" />
-                    <TextBox x:Name="RentalCompanyTextBox"
-                             Padding="8,5"
-                             Margin="0,5,0,0" />
+                    <local:QuoteTermsEditor x:Name="QuoteTerms" />
                 </StackPanel>
 
                 <TextBlock Text="파일 순서(자동)" Style="{StaticResource MutedText}" />
@@ -135,6 +134,7 @@
                              VerticalScrollBarVisibility="Auto" />
                 </StackPanel>
             </StackPanel>
+            </ScrollViewer>
 
             <StackPanel Grid.Row="2"
                         Orientation="Horizontal"

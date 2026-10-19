@@ -1147,6 +1147,7 @@ public partial class MainWindow : Window
                 dialog.FuelType,
                 capitalCompany: null,
                 dialog.RentalCompany,
+                dialog.QuoteType,
                 now);
 
             dbContext.SaveChanges();
@@ -1376,7 +1377,8 @@ public partial class MainWindow : Window
             linkedVehicleResource?.FuelType ?? GetSelectedText(FuelTypeComboBox),
             capitalCompany: null,
             linkedVehicleResource?.RentalCompany ?? linkedVehicleResource?.CapitalCompany,
-            isEditMode: true)
+            isEditMode: true,
+            quoteType: linkedVehicleResource?.QuoteType)
         {
             Owner = this,
         };
@@ -1411,6 +1413,7 @@ public partial class MainWindow : Window
             dialog.FuelType,
             capitalCompany: null,
             dialog.RentalCompany,
+            dialog.QuoteType,
             DateTime.Now);
 
         try
@@ -1939,6 +1942,7 @@ public partial class MainWindow : Window
         string? fuelType,
         string? capitalCompany,
         string? rentalCompany,
+        string? quoteType,
         DateTime now)
     {
         if (IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
@@ -1953,6 +1957,7 @@ public partial class MainWindow : Window
                 fuelType,
                 capitalCompany,
                 rentalCompany,
+                quoteType,
                 now);
             return;
         }
@@ -1970,6 +1975,7 @@ public partial class MainWindow : Window
         string? fuelType,
         string? capitalCompany,
         string? rentalCompany,
+        string? quoteType,
         DateTime now)
     {
         if (!IsEstimateFileType(customerFile.FileType, customerFile.CustomFileType))
@@ -2007,6 +2013,7 @@ public partial class MainWindow : Window
         resource.FuelType = fuelType;
         resource.CapitalCompany = capitalCompany;
         resource.RentalCompany = rentalCompany;
+        resource.QuoteType = quoteType;
         resource.Memo = customerFile.Memo;
 
         if (existingLink is null)

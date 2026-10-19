@@ -72,6 +72,7 @@ namespace ConsultNote.Data.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("TEXT")
                         .HasDefaultValue("Consulting");
@@ -258,6 +259,41 @@ namespace ConsultNote.Data.Migrations
                     b.ToTable("CustomerFiles");
                 });
 
+            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerVehicleResourceLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CustomerFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Memo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VehicleResourceFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerFileId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("VehicleResourceFileId");
+
+                    b.HasIndex("CustomerId", "VehicleResourceFileId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerVehicleResourceLinks");
+                });
+
             modelBuilder.Entity("ConsultNote.Data.Entities.Estimate", b =>
                 {
                     b.Property<int>("Id")
@@ -301,115 +337,24 @@ namespace ConsultNote.Data.Migrations
                     b.ToTable("Estimates");
                 });
 
-            modelBuilder.Entity("ConsultNote.Data.Entities.CustomerVehicleResourceLink", b =>
+            modelBuilder.Entity("ConsultNote.Data.Entities.RentalCompany", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("CustomerFileId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Memo")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("VehicleResourceFileId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerFileId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("VehicleResourceFileId");
-
-                    b.HasIndex("CustomerId", "VehicleResourceFileId")
+                    b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("CustomerVehicleResourceLinks");
-                });
-
-            modelBuilder.Entity("ConsultNote.Data.Entities.VehicleResourceFile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CustomFileType")
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CapitalCompany")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FileOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(1);
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FuelType")
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Memo")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RentalCompany")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StoredFileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("VehicleBrand")
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("VehicleName")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisplayName");
-
-                    b.HasIndex("FileType");
-
-                    b.HasIndex("VehicleName");
-
-                    b.ToTable("VehicleResourceFiles");
+                    b.ToTable("RentalCompanies");
                 });
 
             modelBuilder.Entity("ConsultNote.Data.Entities.Vehicle", b =>
@@ -1035,6 +980,86 @@ namespace ConsultNote.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ConsultNote.Data.Entities.VehicleResourceFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CapitalCompany")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CustomFileType")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FileOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FuelType")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Memo")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("QuoteType")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RentalCompany")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VehicleBrand")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VehicleName")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayName");
+
+                    b.HasIndex("FileType");
+
+                    b.HasIndex("VehicleName");
+
+                    b.ToTable("VehicleResourceFiles");
+                });
+
             modelBuilder.Entity("ConsultNote.Data.Entities.Attachment", b =>
                 {
                     b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
@@ -1070,16 +1095,16 @@ namespace ConsultNote.Data.Migrations
 
             modelBuilder.Entity("ConsultNote.Data.Entities.CustomerVehicleResourceLink", b =>
                 {
+                    b.HasOne("ConsultNote.Data.Entities.CustomerFile", "CustomerFile")
+                        .WithMany("VehicleResourceLinks")
+                        .HasForeignKey("CustomerFileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ConsultNote.Data.Entities.Customer", "Customer")
                         .WithMany("VehicleResourceLinks")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("ConsultNote.Data.Entities.CustomerFile", "CustomerFile")
-                        .WithMany("VehicleResourceLinks")
-                        .HasForeignKey("CustomerFileId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("ConsultNote.Data.Entities.VehicleResourceFile", "VehicleResourceFile")
                         .WithMany("CustomerLinks")

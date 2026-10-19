@@ -52,6 +52,7 @@ public sealed class MainWindowViewModel : ObservableObject
         CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.ContractCompleted, "계약완료"));
         CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.Delivered, "인도완료"));
         CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.LongNoAnswer, "장기부재"));
+        CustomerStatusFilterOptions.Add(new CustomerStatusFilterOption(CustomerStatus.Discarded, "폐기"));
 
         SelectedSortOption = SortOptions[0];
         SelectedSortDirection = SortDirections[1];
@@ -92,6 +93,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _showDiscardedCustomers, value))
             {
+                SelectedCustomerStatusFilter = CustomerStatusFilterOptions[0];
                 OnPropertyChanged(nameof(CustomerListTitle));
                 OnPropertyChanged(nameof(IsSelectedCustomerDiscarded));
                 RefreshCustomers();
@@ -101,7 +103,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string CustomerListTitle => ShowDiscardedCustomers ? "폐기 목록" : "고객 목록";
 
-    public bool IsSelectedCustomerDiscarded => SelectedCustomer?.Status == CustomerStatus.Discarded;
+    public bool IsSelectedCustomerDiscarded => SelectedCustomer?.Status.IsArchived() == true;
 
     public string? SearchText
     {
@@ -259,7 +261,7 @@ public sealed class MainWindowViewModel : ObservableObject
             var weeklyFollowUpCount = activeCustomers.Sum(CountWeeklyFollowUpLogs);
             var weeklyScreeningCustomerCount = activeCustomers.Count(customer => HasWeeklyScreeningLog(customer, weekStart));
 
-            return $"활성 {activeCustomers.Count}명 · 최근 7일 상담 {recentConsultations}명 · 금주 견적 {weeklyEstimateCount}건 · 금주 재접촉 {weeklyFollowUpCount}건 · 금주 심사 {weeklyScreeningCustomerCount}명";
+            return $"활성 {activeCustomers.Count(customer => !customer.Status.IsArchived())}명 · 최근 7일 상담 {recentConsultations}명 · 금주 견적 {weeklyEstimateCount}건 · 금주 재접촉 {weeklyFollowUpCount}건 · 금주 심사 {weeklyScreeningCustomerCount}명";
         }
     }
 
@@ -310,10 +312,9 @@ public sealed class MainWindowViewModel : ObservableObject
         var selectedId = preferredSelectedCustomerId ?? SelectedCustomer?.Id;
         var query = _allCustomers
             .Where(customer => ShowDiscardedCustomers
-                ? customer.Status == CustomerStatus.Discarded
-                : customer.Status != CustomerStatus.Discarded)
-            .Where(customer => ShowDiscardedCustomers
-                || SelectedCustomerStatusFilter?.Status is null
+                ? customer.Status.IsArchived()
+                : !customer.Status.IsArchived())
+            .Where(customer => SelectedCustomerStatusFilter?.Status is null
                 || customer.Status == SelectedCustomerStatusFilter.Status)
             .Where(MatchesSearch);
 
@@ -789,7 +790,7 @@ public sealed class MainWindowViewModel : ObservableObject
         var rentalCompany = TrimToNull(resource?.RentalCompany) ?? TrimToNull(resource?.CapitalCompany);
 
         var vehicleSummary = FormatEstimateVehicleText(brand, vehicleName, fuelType);
-        return string.Join(" · ", new[] { vehicleSummary, rentalCompany }
+        return string.Join(" · ", new[] { vehicleSummary, resource?.QuoteType, rentalCompany }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 

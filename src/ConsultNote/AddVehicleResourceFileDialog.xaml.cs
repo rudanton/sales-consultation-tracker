@@ -36,7 +36,8 @@ public partial class AddVehicleResourceFileDialog : Window
         string? rentalCompany = null,
         string? memo = null,
         string? sourceFilePath = null,
-        bool isEditMode = false)
+        bool isEditMode = false,
+        string? quoteType = null)
     {
         InitializeComponent();
         PreviewKeyDown += AddVehicleResourceFileDialog_PreviewKeyDown;
@@ -51,7 +52,7 @@ public partial class AddVehicleResourceFileDialog : Window
         CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
         FilePathTextBox.Text = sourceFilePath ?? string.Empty;
         MemoTextBox.Text = memo ?? string.Empty;
-        RentalCompanyTextBox.Text = rentalCompany ?? capitalCompany ?? string.Empty;
+        QuoteTerms.Load(quoteType, rentalCompany ?? capitalCompany);
 
         LoadVehicleOptions(vehicleBrand, vehicleName, fuelType);
         UpdateFileOrder();
@@ -74,7 +75,7 @@ public partial class AddVehicleResourceFileDialog : Window
 
     public string OriginalFileName => Path.GetFileName(SourceFilePath);
 
-    public string FileType => TrimToNull(FileTypeComboBox.Text) ?? FileTypes[0];
+    public string FileType => TrimToNull(FileTypeComboBox.SelectedItem as string ?? FileTypeComboBox.Text) ?? FileTypes[0];
 
     public string? CustomFileType => TrimToNull(CustomFileTypeTextBox.Text);
 
@@ -88,7 +89,9 @@ public partial class AddVehicleResourceFileDialog : Window
 
     public string? CapitalCompany => null;
 
-    public string? RentalCompany => TrimToNull(RentalCompanyTextBox.Text);
+    public string? RentalCompany => QuoteTerms.RentalCompany;
+
+    public string? QuoteType => QuoteTerms.QuoteType;
 
     public string? Memo => TrimToNull(MemoTextBox.Text);
 
@@ -152,6 +155,10 @@ public partial class AddVehicleResourceFileDialog : Window
     {
         UpdateCustomFileTypeVisibility();
         UpdateFileOrder();
+        if (QuoteTerms is not null)
+        {
+            QuoteTerms.Visibility = FileType == "견적" ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -177,6 +184,11 @@ public partial class AddVehicleResourceFileDialog : Window
         if (FileType == "기타" && string.IsNullOrWhiteSpace(CustomFileType))
         {
             MessageBox.Show("기타 자료 유형명을 입력해주세요.", "Consult Note", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (FileType == "견적" && !QuoteTerms.ValidateSelection())
+        {
             return;
         }
 

@@ -28,6 +28,8 @@ public sealed class VehicleResourceFile
 
     public string? RentalCompany { get; set; }
 
+    public string? QuoteType { get; set; }
+
     public string? Memo { get; set; }
 
     public DateTime CreatedAt { get; set; }
