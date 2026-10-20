@@ -96,7 +96,7 @@ public partial class AddCustomerFileDialog : Window
         FilePathTextBox.Text = sourceFilePath ?? string.Empty;
         CustomFileTypeTextBox.Text = customFileType ?? string.Empty;
         MemoTextBox.Text = memo ?? string.Empty;
-        QuoteTerms.Load(quoteType, rentalCompany ?? capitalCompany);
+        QuoteTerms.Load(quoteType ?? (_isEditMode ? null : "렌트"), rentalCompany ?? capitalCompany);
         LoadVehicleOptions(vehicleBrand, vehicleName, fuelType);
         UpdateFileOrder();
         if (fileOrder is not null)

@@ -201,11 +201,23 @@ internal static class Program
         var brand = (ComboBox)dialog.FindName("BrandFilterComboBox");
         Check(fuel.TranslatePoint(new Point(), content).Y > brand.TranslatePoint(new Point(), content).Y + brand.ActualHeight,
             "Fuel filter occupies a separate row.");
-        var oldDialog = new AddVehicleResourceFileDialog(fileType: "견적");
+        var newResourceDialog = new AddVehicleResourceFileDialog(fileType: "견적");
+        var newCustomerDialog = new AddCustomerFileDialog(fileType: "견적");
+        Check(newResourceDialog.QuoteType == "렌트", "New shared quote defaults to rent.");
+        Check(newCustomerDialog.QuoteType == "렌트", "New customer quote defaults to rent.");
+        var leaseEditDialog = new AddVehicleResourceFileDialog(fileType: "견적", isEditMode: true, quoteType: "리스");
+        Check(leaseEditDialog.QuoteType == "리스", "Editing preserves lease classification.");
+        var oldCustomerDialog = new AddCustomerFileDialog(fileType: "견적", isEditMode: true);
+        Check(oldCustomerDialog.QuoteType is null, "Editing an unspecified customer quote keeps its type.");
+        var oldDialog = new AddVehicleResourceFileDialog(fileType: "견적", isEditMode: true);
         Check(oldDialog.QuoteType is null, "Do not guess type for legacy quotes.");
         customerDialog.Close();
         resourceDialog.Close();
         oldDialog.Close();
+        newResourceDialog.Close();
+        newCustomerDialog.Close();
+        leaseEditDialog.Close();
+        oldCustomerDialog.Close();
         dialog.Close();
     }
 
