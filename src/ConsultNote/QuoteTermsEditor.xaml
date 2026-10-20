@@ -12,7 +12,12 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <ComboBox x:Name="CompanyComboBox" IsEditable="False" MinHeight="30" />
+            <ComboBox x:Name="CompanyComboBox"
+                      IsEditable="True"
+                      IsTextSearchEnabled="True"
+                      IsTextSearchCaseSensitive="False"
+                      StaysOpenOnEdit="True"
+                      MinHeight="30" />
             <Button Grid.Column="1" Content="+" ToolTip="렌트사 추가" MinWidth="32" Margin="8,0,0,0"
                     Click="ShowAddCompanyButton_Click" />
         </Grid>

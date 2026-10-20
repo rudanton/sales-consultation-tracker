@@ -7,6 +7,8 @@ namespace ConsultNote;
 
 public partial class QuoteTermsEditor : System.Windows.Controls.UserControl
 {
+    private List<string> _companies = [];
+
     public QuoteTermsEditor()
     {
         InitializeComponent();
@@ -15,14 +17,16 @@ public partial class QuoteTermsEditor : System.Windows.Controls.UserControl
     public string? QuoteType => RentRadioButton.IsChecked == true ? "렌트"
         : LeaseRadioButton.IsChecked == true ? "리스" : null;
 
-    public string? RentalCompany => CompanyComboBox.SelectedItem as string;
+    public string? RentalCompany => _companies.FirstOrDefault(company =>
+        string.Equals(company, CompanyComboBox.Text.Trim(), StringComparison.CurrentCultureIgnoreCase));
 
     public void Load(string? quoteType, string? rentalCompany)
     {
         RentRadioButton.IsChecked = quoteType == "렌트";
         LeaseRadioButton.IsChecked = quoteType == "리스";
         using var dbContext = new AppDbContext();
-        CompanyComboBox.ItemsSource = RentalCompanyCatalog.Load(dbContext);
+        _companies = RentalCompanyCatalog.Load(dbContext);
+        CompanyComboBox.ItemsSource = _companies;
         CompanyComboBox.SelectedItem = rentalCompany?.Trim();
     }
 
@@ -65,7 +69,8 @@ public partial class QuoteTermsEditor : System.Windows.Controls.UserControl
         {
             using var dbContext = new AppDbContext();
             var name = RentalCompanyCatalog.Add(dbContext, NewCompanyTextBox.Text);
-            CompanyComboBox.ItemsSource = RentalCompanyCatalog.Load(dbContext);
+            _companies = RentalCompanyCatalog.Load(dbContext);
+            CompanyComboBox.ItemsSource = _companies;
             CompanyComboBox.SelectedItem = name;
             CancelAddCompanyButton_Click(sender, e);
         }

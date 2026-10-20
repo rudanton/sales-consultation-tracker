@@ -171,7 +171,16 @@ internal static class Program
         Check(resourceDialog.QuoteType == "렌트" && resourceDialog.RentalCompany == "테스트캐피탈", "Shared upload metadata.");
         var editor = (QuoteTermsEditor)resourceDialog.FindName("QuoteTerms");
         Check(editor.Visibility == Visibility.Visible, "Quote controls visible.");
-        Check(!((ComboBox)editor.FindName("CompanyComboBox")).IsEditable, "Company selection is list-only.");
+        var companyComboBox = (ComboBox)editor.FindName("CompanyComboBox");
+        Check(companyComboBox.IsEditable && companyComboBox.IsTextSearchEnabled, "Company selection supports typed autocomplete.");
+        companyComboBox.Text = "new capital";
+        Check(editor.RentalCompany == "New Capital", "Typed name uses the canonical catalog spelling.");
+        companyComboBox.Text = "등록하지 않은 캐피탈";
+        Check(editor.RentalCompany is null, "An unregistered typed name cannot be saved.");
+        companyComboBox.Text = string.Empty;
+        Check(editor.RentalCompany is null, "Cleared text must not retain the previous selection.");
+        companyComboBox.SelectedItem = "테스트캐피탈";
+        Check(editor.RentalCompany == "테스트캐피탈", "Dropdown selection still works after typing.");
         ((ComboBox)resourceDialog.FindName("FileTypeComboBox")).SelectedItem = "차량설명";
         Check(editor.Visibility == Visibility.Collapsed, "Other documents do not require quote terms.");
         ((ComboBox)resourceDialog.FindName("FileTypeComboBox")).SelectedItem = "견적";
