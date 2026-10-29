@@ -32,6 +32,8 @@
     <None Include="사용법.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\..\docs\사용설명서.md" Link="사용설명서.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\..\output\pdf\ConsultNote_사용설명서.pdf" Link="ConsultNote_사용설명서.pdf" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\output\pdf\ConsultNote_사용설명서(자세한 버전).pdf" Link="ConsultNote_사용설명서(자세한 버전).pdf" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\docs\images\getting-started\*.png" Link="images\getting-started\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

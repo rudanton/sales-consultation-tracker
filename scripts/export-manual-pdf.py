@@ -10,7 +10,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    BaseDocTemplate, Frame, PageBreak, PageTemplate, Paragraph,
+    BaseDocTemplate, Frame, Image, KeepTogether, PageBreak, PageTemplate, Paragraph,
     Preformatted, Spacer, Table, TableStyle,
 )
 
@@ -96,6 +96,14 @@ def table_rows(lines, start):
     return rows, start
 
 
+def screenshot(alt, relative_path, width):
+    picture = Image(str(SOURCE.parent / relative_path))
+    ratio = width / picture.imageWidth
+    picture.drawWidth = width
+    picture.drawHeight = picture.imageHeight * ratio
+    return [picture, Spacer(1, 5), Paragraph(inline(alt), styles["ManualCell"])]
+
+
 def create_pdf():
     lines = SOURCE.read_text(encoding="utf-8-sig").splitlines()
     story = [Paragraph("Consult Note", styles["ManualTitle"]),
@@ -112,10 +120,29 @@ def create_pdf():
                 i += 1
             continue
         if line.startswith("## "):
-            if re.match(r"## (4|7)\.", line):
+            if re.match(r"## (4|7)\.", line) or line == "## 처음 실행할 때 참고 화면":
                 story.append(PageBreak())
             story.append(Paragraph(inline(line[3:]), styles["ManualH2"]))
             i += 1
+        elif line.startswith("!["):
+            pictures = []
+            while i < len(lines) and lines[i].startswith("!["):
+                match = re.fullmatch(r"!\[(.*?)\]\((.*?)\)", lines[i])
+                if match is None:
+                    raise ValueError(f"Invalid image reference: {lines[i]}")
+                pictures.append(match.groups())
+                i += 1
+            if len(pictures) == 2:
+                width = (A4[0] - 108) / 2
+                pair = Table([[screenshot(*picture, width) for picture in pictures]],
+                             colWidths=[(A4[0] - 92) / 2] * 2, hAlign="LEFT")
+                pair.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
+                                         ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                                         ("RIGHTPADDING", (0, 0), (-1, -1), 8)]))
+                story.extend([pair, Spacer(1, 12)])
+            else:
+                for picture in pictures:
+                    story.extend([KeepTogether(screenshot(*picture, A4[0] - 92)), Spacer(1, 10)])
         elif line.startswith("### "):
             story.append(Paragraph(inline(line[4:]), styles["ManualH3"]))
             i += 1
@@ -149,7 +176,7 @@ def create_pdf():
         else:
             paragraph = [line]
             i += 1
-            while i < len(lines) and lines[i].strip() and not re.match(r"^(#|\||```|\d+\.\s|[-] )", lines[i]):
+            while i < len(lines) and lines[i].strip() and not re.match(r"^(#|!\[|\||```|\d+\.\s|[-] )", lines[i]):
                 paragraph.append(lines[i].strip())
                 i += 1
             story.append(Paragraph(inline(" ".join(paragraph)), styles["ManualBody"]))

@@ -89,6 +89,7 @@ storage/
 
 - [사용 가이드](docs/사용설명서.md): 고객 등록부터 상담 저장, 견적 활용과 데이터 보관까지 실제 업무 흐름 안내
 - [배포용 PDF 가이드](output/pdf/ConsultNote_사용설명서.pdf): 한글 글꼴이 포함된 A4 사용 안내, PDF 책갈피 제공
+- [자세한 버전 PDF](output/pdf/ConsultNote_사용설명서(자세한%20버전).pdf): 별도로 보관한 설명서. 두 PDF 모두 배포 ZIP에 포함
 - [SRS](docs/srs.md): 요구사항 명세
 - [TODO](docs/TODO.md): 개발 작업 목록
 
