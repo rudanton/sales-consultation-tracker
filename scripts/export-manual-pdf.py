@@ -13,7 +13,6 @@ from reportlab.platypus import (
     BaseDocTemplate, Frame, PageBreak, PageTemplate, Paragraph,
     Preformatted, Spacer, Table, TableStyle,
 )
-from reportlab.platypus.tableofcontents import TableOfContents
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,8 +41,6 @@ styles.add(ParagraphStyle("ManualCode", parent=styles["ManualBody"], fontSize=8.
                           leftIndent=8, rightIndent=8, backColor=PALE, borderPadding=9))
 styles.add(ParagraphStyle("ManualTitle", parent=styles["ManualBody"], fontName="MalgunBold",
                           fontSize=30, leading=45))
-styles.add(ParagraphStyle("ManualTOC", parent=styles["ManualBody"], fontSize=11, leading=22,
-                          leftIndent=0, rightIndent=4, spaceBefore=0, spaceAfter=0))
 
 
 def inline(text):
@@ -87,7 +84,6 @@ class ManualDocument(BaseDocTemplate):
                 key = "section-" + title.split(".", 1)[0]
                 self.canv.bookmarkPage(key)
                 self.canv.addOutlineEntry(title, key, level=0)
-                self.notify("TOCEntry", (0, title, self.page, key))
 
 
 def table_rows(lines, start):
@@ -102,15 +98,8 @@ def table_rows(lines, start):
 
 def create_pdf():
     lines = SOURCE.read_text(encoding="utf-8-sig").splitlines()
-    story = [Spacer(1, 100), Paragraph("Consult Note", styles["ManualTitle"]),
-             Spacer(1, 16), Paragraph("사용 설명서", styles["ManualTitle"]),
-             Spacer(1, 28), Paragraph("고객 등록부터 상담 기록, 견적 관리, 백업까지", styles["ManualH3"]),
-             Spacer(1, 70), Paragraph("2026년 10월 29일 기준", styles["ManualBody"]),
-             Paragraph("현재 소스 코드 기준으로 작성했습니다. 이전 배포본에서는 일부 기능이나 버튼이 다를 수 있습니다.", styles["ManualBody"]),
-             PageBreak(), Paragraph("목차", styles["ManualH2"])]
-    toc = TableOfContents()
-    toc.levelStyles = [styles["ManualTOC"]]
-    story.extend([toc, PageBreak()])
+    story = [Paragraph("Consult Note", styles["ManualTitle"]),
+             Paragraph("사용 가이드", styles["ManualH3"]), Spacer(1, 8)]
     i = 1
     while i < len(lines):
         line = lines[i].strip()
@@ -123,7 +112,7 @@ def create_pdf():
                 i += 1
             continue
         if line.startswith("## "):
-            if line.startswith("## 19."):
+            if re.match(r"## (4|7)\.", line):
                 story.append(PageBreak())
             story.append(Paragraph(inline(line[3:]), styles["ManualH2"]))
             i += 1
@@ -165,7 +154,7 @@ def create_pdf():
                 i += 1
             story.append(Paragraph(inline(" ".join(paragraph)), styles["ManualBody"]))
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    ManualDocument(OUTPUT).multiBuild(story)
+    ManualDocument(OUTPUT).build(story)
     print(OUTPUT)
 
 

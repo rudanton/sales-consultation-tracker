@@ -87,8 +87,8 @@ storage/
 
 ## 문서
 
-- [상세 사용 설명서](docs/사용설명서.md): 고객·상담·견적 관리, 내보내기, 업데이트, 백업 및 PC 이동 안내
-- [배포용 PDF 설명서](output/pdf/ConsultNote_사용설명서.pdf): 한글 글꼴이 포함된 A4 설명서, 목차 및 PDF 책갈피 제공
+- [사용 가이드](docs/사용설명서.md): 고객 등록부터 상담 저장, 견적 활용과 데이터 보관까지 실제 업무 흐름 안내
+- [배포용 PDF 가이드](output/pdf/ConsultNote_사용설명서.pdf): 한글 글꼴이 포함된 A4 사용 안내, PDF 책갈피 제공
 - [SRS](docs/srs.md): 요구사항 명세
 - [TODO](docs/TODO.md): 개발 작업 목록
 
