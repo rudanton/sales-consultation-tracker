@@ -1585,26 +1585,61 @@ public partial class MainWindow : Window
 
         _ = TryGetMileageValue(out var mileage);
 
-        var consultationContent = GetLatestConsultationContent();
-        var specialNote = GetSpecialNoteExportText();
-
-        return string.Join(Environment.NewLine, new[]
+        var contractType = GetContractType();
+        var period = GetSelectedText(ContractPeriodComboBox);
+        if (contractType == "렌트")
         {
-            $"★렌트/리스 : {GetContractType()}",
-            $"★차량스팩 : {vehicleSpec}",
-            $"★계약기간 : {GetSelectedText(ContractPeriodComboBox)}",
-            $"★주행거리 : {mileage}",
-            $"★인도지역 : {GetDeliveryRegionText()}",
-            $"★초기비용 : {GetInitialCostText()}",
-            $"★명의형태 : {GetOwnerType()}",
-            $"★사업업력 : {FormatToggle(BusinessExperienceToggleButton.IsChecked)}",
-            $"★실운전자 : {ActualDriverTextBox.Text.Trim()}",
-            $"★운전면허 : {FormatToggle(DriverLicenseToggleButton.IsChecked)}",
-            $"★보험연령 : {GetSelectedText(InsuranceAgeComboBox)}",
-            $"★신용상태 : {CreditStatusTextBox.Text.Trim()}",
-            $"★특이사항 : {specialNote}",
-            $"★상담내용 : {consultationContent}",
+            contractType = period == "단기" ? "단기렌트" : "장기렌트";
+        }
+
+        var owner = string.Join(",", new[]
+        {
+            GetOwnerType(),
+            BusinessExperienceToggleButton.IsChecked == true ? "사업업력 1년 이상" : string.Empty,
         });
+        owner = owner.Trim(',');
+
+        var initialCosts = new List<string>();
+        if (NoInitialCostCheckBox.IsChecked == true)
+        {
+            initialCosts.Add("무보증");
+        }
+        if (TrimToNull(PrepaymentTextBox.Text) is { } prepayment)
+        {
+            initialCosts.Add($"선납금 {prepayment}");
+        }
+        if (TrimToNull(DepositTextBox.Text) is { } deposit)
+        {
+            initialCosts.Add($"보증금 {deposit}");
+        }
+        var initialCost = string.Join(",", initialCosts);
+        if (NoInitialCostCheckBox.IsChecked == true && initialCosts.Count > 1)
+        {
+            initialCost += " 비교희망";
+        }
+
+        var region = GetDeliveryRegionText();
+        var driver = ActualDriverTextBox.Text.Trim();
+        var insuranceAge = GetSelectedText(InsuranceAgeComboBox);
+        var credit = CreditStatusTextBox.Text.Trim();
+        var note = GetSpecialNoteExportText();
+        var conditionParts = new[]
+        {
+            contractType, vehicleSpec, period,
+            string.IsNullOrWhiteSpace(mileage) ? string.Empty : mileage == "무제한" ? "주행거리 무제한" : $"연간{mileage}",
+            string.IsNullOrWhiteSpace(region) ? string.Empty : $"인도지역 {region}",
+            initialCost, owner,
+            string.IsNullOrWhiteSpace(driver) ? string.Empty : $"실운전자 {driver}",
+            DriverLicenseToggleButton.IsChecked == true ? "운전면허 취득 1년 이상" : string.Empty,
+            string.IsNullOrWhiteSpace(insuranceAge) ? string.Empty : $"보험연령 {insuranceAge}",
+            string.IsNullOrWhiteSpace(credit) ? string.Empty : $"신용상태 {credit}",
+            string.IsNullOrWhiteSpace(note) ? string.Empty : $"특이사항 {note}",
+        };
+        var signature = string.Join("/", conditionParts
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => string.Join(" ", part.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))));
+        var content = $"상담내용 : {GetLatestConsultationContent()}";
+        return string.IsNullOrEmpty(signature) ? content : $"{signature}{Environment.NewLine}{Environment.NewLine}{content}";
     }
 
     private static string BuildConsultationHistoryExportText(CustomerItemViewModel customer)
@@ -2332,11 +2367,6 @@ public partial class MainWindow : Window
         }
 
         return string.Empty;
-    }
-
-    private static string FormatToggle(bool? isChecked)
-    {
-        return isChecked == true ? "1년 이상" : string.Empty;
     }
 
     private bool TryGetMileageValue(out string mileage)

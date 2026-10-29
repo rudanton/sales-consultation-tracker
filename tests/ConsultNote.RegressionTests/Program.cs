@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using ConsultNote;
@@ -32,6 +33,7 @@ internal static class Program
             TestCustomerLists();
             TestFilters();
             TestDialogs();
+            TestConsultationExport();
             Console.WriteLine($"PASS: {_checks} regression checks.");
             app.Shutdown();
             return 0;
@@ -219,6 +221,67 @@ internal static class Program
         leaseEditDialog.Close();
         oldCustomerDialog.Close();
         dialog.Close();
+    }
+
+    private static void TestConsultationExport()
+    {
+        var window = new MainWindow { Left = 0, Top = 0 };
+        try
+        {
+            void SetText(string name, string value) => ((TextBox)window.FindName(name)).Text = value;
+            void SetCombo(string name, string value)
+            {
+                var combo = (ComboBox)window.FindName(name);
+                var item = combo.Items.OfType<ComboBoxItem>().FirstOrDefault(option => Equals(option.Content, value));
+                if (item is not null) combo.SelectedItem = item;
+                else combo.Text = value;
+            }
+            string Export() => (string)typeof(MainWindow).GetMethod("BuildConsultationExportText", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null)!;
+
+            ((RadioButton)window.FindName("RentRadioButton")).IsChecked = true;
+            SetCombo("VehicleBrandComboBox", "제네시스");
+            SetCombo("VehicleNameComboBox", "GV80");
+            SetCombo("ContractPeriodComboBox", "60개월");
+            SetCombo("MileageComboBox", "2만km");
+            SetText("DeliveryRegionDetailTextBox", "서울");
+            ((CheckBox)window.FindName("NoInitialCostCheckBox")).IsChecked = true;
+            SetText("DepositTextBox", "1천");
+            ((RadioButton)window.FindName("SoleProprietorOwnerRadioButton")).IsChecked = true;
+            ((System.Windows.Controls.Primitives.ToggleButton)window.FindName("BusinessExperienceToggleButton")).IsChecked = true;
+            ((System.Windows.Controls.Primitives.ToggleButton)window.FindName("DriverLicenseToggleButton")).IsChecked = true;
+            SetText("ActualDriverTextBox", "본인 및 자녀(딸)");
+            SetCombo("InsuranceAgeComboBox", "21세 이상");
+            SetText("CreditStatusTextBox", "기대출 1천만(신용)");
+            SetText("SpecialNoteTextBox", "도매업");
+            var consultation = "심사 진행을 안내했으며 현재 보류 중입니다." + Environment.NewLine + Environment.NewLine + "보증금 조건을 비교하고 다시 연락하기로 했습니다.";
+            SetText("ConsultationContentTextBox", consultation);
+            var export = Export();
+            var header = export.Split(Environment.NewLine)[0];
+            Check(header.StartsWith("장기렌트/제네시스 GV80"), "Compact export contract and vehicle.");
+            Check(header.Contains("/60개월/연간2만km/"), "Compact period and annual mileage.");
+            Check(header.Contains("무보증,보증금 1천 비교희망"), "No-deposit and deposit comparison retained.");
+            Check(header.Contains("개인사업자,사업업력 1년 이상"), "Owner and business experience.");
+            Check(header.Contains("실운전자 본인 및 자녀(딸)/운전면허 취득 1년 이상/보험연령 21세 이상"), "Driver and insurance fields.");
+            Check(header.Contains("신용상태 기대출 1천만(신용)") && header.Contains("특이사항 도매업"), "Credit and additional notes retained.");
+            Check(export.EndsWith("상담내용 : " + consultation) && !export.Contains("★"), "Consultation prose and line breaks preserved.");
+            ((System.Windows.Controls.Primitives.ToggleButton)window.FindName("BusinessExperienceToggleButton")).IsChecked = false;
+            ((System.Windows.Controls.Primitives.ToggleButton)window.FindName("DriverLicenseToggleButton")).IsChecked = false;
+            SetText("CreditStatusTextBox", string.Empty);
+            SetText("ConsultationContentTextBox", string.Empty);
+            export = Export();
+            Check(!export.Contains("사업업력") && !export.Contains("운전면허 취득") && !export.Contains("신용상태"), "Unset optional fields omitted.");
+            Check(export.EndsWith("상담내용 : Historical consultation"), "Empty input falls back to the latest saved consultation.");
+            ((RadioButton)window.FindName("LeaseRadioButton")).IsChecked = true;
+            SetCombo("MileageComboBox", "무제한");
+            Check(Export().StartsWith("리스/") && Export().Contains("/주행거리 무제한/"), "Lease and unlimited mileage labels.");
+            ((RadioButton)window.FindName("RentRadioButton")).IsChecked = true;
+            SetCombo("ContractPeriodComboBox", "단기");
+            Check(Export().StartsWith("단기렌트/"), "Short-term rent not mislabeled as long-term.");
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static void Check(bool condition, string message)
